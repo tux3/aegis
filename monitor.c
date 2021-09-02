@@ -2,7 +2,11 @@
 
 #include <linux/completion.h>
 #include <linux/delay.h>
+#include <linux/file.h>
+#include <linux/fs.h>
 #include <linux/kthread.h>
+#include <linux/mount.h>
+#include <linux/mm.h>
 #include <linux/sched/signal.h>
 #include <linux/sched/task.h>
 #include <linux/types.h>
@@ -19,6 +23,35 @@ static struct task_struct *aegisc_task;
 static int aegisc_task_disable;
 
 static struct task_struct *aegisc_monitor_task;
+
+// This only does some very basic checks
+// It is vulnerable to TOCTOU, but that's OK (root can do worse than TOCTOU)
+static int sanity_check_aegisc_file(void)
+{
+	int ret = 0;
+	struct file *file = filp_open(aegisc_path, O_LARGEFILE | O_RDONLY, 0);
+	if (IS_ERR(file)) {
+		pr_err("Failed to open usermode helper file: %pe\n", file);
+		// insmod would interpret ENOENT as "Unknown symbol in module"
+		if (PTR_ERR(file) == -ENOENT)
+			return -ENOPKG;
+		return PTR_ERR(file);
+	}
+
+	if (!S_ISREG(file_inode(file)->i_mode) ||
+	    (file->f_path.mnt->mnt_flags & MNT_NOEXEC) ||
+	    (file->f_path.mnt->mnt_sb->s_iflags & SB_I_NOEXEC)) {
+		ret = -EACCES;
+		goto out;
+	}
+
+	if (inode_is_open_for_write(file_inode(file)))
+		ret = -ETXTBSY;
+
+out:
+	fput(file);
+	return ret;
+}
 
 static int aegisc_umh_init(struct subprocess_info *info, struct cred *new)
 {
@@ -133,6 +166,10 @@ void stop_aegisc_monitor_thread(void)
 
 int start_aegisc_monitor_thread(void)
 {
+	int ret = sanity_check_aegisc_file();
+	if (ret)
+		return ret;
+
 	aegisc_monitor_task =
 		kthread_create(aegisc_monitor_thread, NULL, "aegisc_monitor");
 	if (IS_ERR(aegisc_monitor_task)) {
