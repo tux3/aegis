@@ -4,6 +4,7 @@ modules.order
 *.patch
 *.ko
 *.o
+*.o.d
 *.cmd
 *.mod
 *.mod.*
