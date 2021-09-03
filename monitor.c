@@ -152,6 +152,16 @@ static int aegisc_monitor_thread(void *unused)
 	return 0;
 }
 
+pid_t aegisc_umh_get_pid(void)
+{
+	pid_t pid = 0;
+	mutex_lock(&aegisc_task_mutex);
+	if (aegisc_task)
+		pid = task_pid_nr(aegisc_task);
+	mutex_unlock(&aegisc_task_mutex);
+	return pid;
+}
+
 void stop_aegisc_monitor_thread(void)
 {
 	int err = aegisc_umh_disable_and_kill();

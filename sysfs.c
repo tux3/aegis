@@ -2,11 +2,22 @@
 
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
+#include "monitor.h"
 #include "sysfs.h"
 
 struct kobject *aegisk_kobj;
 
+static ssize_t umh_pid_show(struct kobject *kobj, struct kobj_attribute *attr,
+		      char *buf)
+{
+	return sprintf(buf, "%d\n", aegisc_umh_get_pid());
+}
+
+static struct kobj_attribute umh_pid_attribute =
+	__ATTR(umh_pid, S_IRUSR, umh_pid_show, NULL);
+
 static struct attribute *attrs[] = {
+	&umh_pid_attribute.attr,
 	NULL,
 };
 
