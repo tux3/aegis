@@ -3,6 +3,7 @@
 #include <asm/cpufeatures.h>
 #include <asm/cpu_device_id.h>
 #include <linux/module.h>
+#include "lock.h"
 #include "monitor.h"
 #include "sysfs.h"
 
@@ -22,6 +23,10 @@ static void __exit cleanup(void)
 static int __init init(void)
 {
 	int ret;
+
+	ret = init_locking();
+	if (ret)
+		return ret;
 
 	ret = start_aegisc_monitor_thread();
 	if (ret)
