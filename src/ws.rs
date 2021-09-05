@@ -1,0 +1,179 @@
+use crate::device_handlers::{device_handler_iter, DeviceHandlerFn};
+use actix::{
+    Actor, ActorContext, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
+    WrapFuture,
+};
+use actix_http::ws;
+use actix_web::web::{Bytes, BytesMut};
+use actix_web_actors::ws::WebsocketContext;
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+use tracing::{error, info, warn};
+
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+const WS_TIMEOUT: Duration = Duration::from_secs(10);
+
+lazy_static::lazy_static! {
+    static ref HANDLER_MAP: HashMap<String, DeviceHandlerFn> = {
+        let mut m = HashMap::new();
+        for handler in device_handler_iter() {
+            m.insert(handler.path.trim_start_matches('/').to_owned(), handler.handler);
+        }
+        m
+    };
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct WsResponse {
+    is_ok: bool,
+    msg_id: String,
+    payload: Bytes,
+}
+
+pub struct WsConn {
+    last_heartbeat: Instant,
+    remote_addr_untrusted: String,
+}
+
+impl WsConn {
+    pub fn new(remote_addr_untrusted: String) -> WsConn {
+        WsConn {
+            last_heartbeat: Instant::now(),
+            remote_addr_untrusted,
+        }
+    }
+
+    fn start_heartbeat(&self, ctx: &mut WebsocketContext<Self>) {
+        ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
+            if Instant::now().duration_since(act.last_heartbeat) > WS_TIMEOUT {
+                info!("{}: ping timeout", &act.remote_addr_untrusted);
+                ctx.stop();
+                return;
+            }
+
+            ctx.ping(b"ping");
+        });
+    }
+
+    fn handle_message_data(&self, ctx: &mut WebsocketContext<Self>, payload: Bytes) {
+        // WS message format: <msg_id> <handler> <data>
+        let mut elems = payload.splitn(3, |&c| c == b' ');
+        let remote_addr = self.remote_addr_untrusted.as_str();
+        let (msg_id, handler, data) = match (elems.next(), elems.next(), elems.next(), elems.next())
+        {
+            (Some(msg_id), Some(handler), Some(data), None) => (msg_id, handler, data),
+            _ => {
+                warn!(
+                    %remote_addr,
+                    size = payload.len(),
+                    "Invalid websocket message"
+                );
+                return;
+            }
+        };
+        let handler = match std::str::from_utf8(handler) {
+            Ok(handler) => handler,
+            _ => {
+                warn!(%remote_addr, "Websocket handler name is not valid UTF-8");
+                return;
+            }
+        };
+        let msg_id = match std::str::from_utf8(msg_id) {
+            Ok(msg_id) => msg_id.to_owned(),
+            _ => {
+                warn!(%remote_addr, "Websocket msg_id is not valid UTF-8");
+                return;
+            }
+        };
+        let data = payload.slice_ref(data);
+
+        let handler = match HANDLER_MAP.get(handler) {
+            Some(handler) => handler,
+            _ => {
+                warn!(%remote_addr, "Websocket handler not found: {}", handler);
+                ctx.notify(WsResponse {
+                    is_ok: false,
+                    msg_id,
+                    payload: "handler not found".into(),
+                });
+                return;
+            }
+        };
+
+        let self_addr = ctx.address().recipient();
+        let fut = async move {
+            let reply_bytes = match handler(data).await {
+                Ok(reply) => WsResponse {
+                    is_ok: true,
+                    msg_id,
+                    payload: reply,
+                },
+                Err(e) => WsResponse {
+                    is_ok: false,
+                    msg_id,
+                    payload: format!("{}", e).into(),
+                },
+            };
+            self_addr.send(reply_bytes).await.unwrap_or_else(|e| {
+                warn!("Failed to send websocket reply to actor: {}", e);
+            })
+        };
+        fut.into_actor(self).spawn(ctx);
+    }
+}
+
+impl Handler<WsResponse> for WsConn {
+    type Result = ();
+
+    fn handle(&mut self, msg: WsResponse, ctx: &mut Self::Context) {
+        let mut ws_header = BytesMut::from(msg.msg_id.as_bytes());
+        if msg.is_ok {
+            ws_header.extend_from_slice(b" ok ");
+        } else {
+            ws_header.extend_from_slice(b" err ");
+        };
+        ctx.write_raw(ws::Message::Continuation(ws::Item::FirstBinary(
+            ws_header.into(),
+        )));
+        ctx.write_raw(ws::Message::Continuation(ws::Item::Last(msg.payload)));
+    }
+}
+
+impl Actor for WsConn {
+    type Context = WebsocketContext<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        self.start_heartbeat(ctx);
+    }
+}
+
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsConn {
+    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+        let remote_addr = &self.remote_addr_untrusted;
+        match msg {
+            Ok(ws::Message::Text(payload)) => self.handle_message_data(ctx, payload.into_bytes()),
+            Ok(ws::Message::Binary(payload)) => self.handle_message_data(ctx, payload),
+            Ok(ws::Message::Ping(msg)) => {
+                self.last_heartbeat = Instant::now();
+                ctx.pong(&msg);
+            }
+            Ok(ws::Message::Pong(_)) => {
+                self.last_heartbeat = Instant::now();
+            }
+            Ok(ws::Message::Close(reason)) => {
+                warn!(%remote_addr, "Closed websocket with reason: {:?}", reason);
+                ctx.close(reason);
+                ctx.stop();
+            }
+            Ok(ws::Message::Continuation(_)) => {
+                ctx.stop();
+            }
+            Ok(ws::Message::Nop) => (),
+            Err(e) => {
+                error!(%remote_addr, "Protocol error: {}", e);
+                ctx.stop();
+            }
+        }
+    }
+}
