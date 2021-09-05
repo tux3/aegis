@@ -1,5 +1,7 @@
 mod config;
+mod crypto;
 mod device_handlers;
+mod middleware;
 mod root_handlers;
 mod ws;
 
@@ -40,7 +42,8 @@ async fn main() -> Result<()> {
     let app_fn = || {
         let app = App::new().service(websocket).service(health);
 
-        let mut device_scope = web::scope("/device/{device_id}");
+        let mut device_scope =
+            web::scope("/device/{device_pk}").wrap(middleware::DeviceReqTransform);
         for handler in device_handler_iter() {
             device_scope = device_scope.route(handler.path, web::post().to(handler.handler));
         }
