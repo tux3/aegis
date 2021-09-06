@@ -1,0 +1,2 @@
+mod gen_device_key;
+pub use gen_device_key::gen_device_key;
