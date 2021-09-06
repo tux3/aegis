@@ -2,7 +2,9 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Deserialize)]
-pub struct Config {}
+pub struct Config {
+    pub server_addr: String,
+}
 
 impl Config {
     pub fn from_file(path: impl AsRef<Path>) -> Config {

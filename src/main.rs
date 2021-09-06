@@ -1,6 +1,10 @@
 mod cmd;
 mod config;
+mod dev_client;
+mod ws_client;
 
+use crate::dev_client::DeviceClient;
+use aegislib::crypto::priv_sign_key_from_file;
 use anyhow::{Context, Result};
 use clap::{clap_app, AppSettings};
 
@@ -26,6 +30,13 @@ async fn main() -> Result<()> {
             (about: "Generate a random device key file")
             (@arg output: +required "The destination file")
         )
+        (@subcommand "device" =>
+            (about: "Send requests as if running on a device")
+            (@arg key: +required "The device private key file")
+            (@subcommand "status" =>
+                (about: "Get the expected status for this device")
+            )
+        )
     )
     .setting(AppSettings::ArgRequiredElseHelp)
     .get_matches();
@@ -38,6 +49,14 @@ async fn main() -> Result<()> {
 
     match args.subcommand().unwrap() {
         ("gen-device-key", sub_args) => cmd::gen_device_key(&config, sub_args).await,
+        ("device", dev_args) => {
+            let dev_key = priv_sign_key_from_file(dev_args.value_of_os("key").unwrap())?;
+            let client = DeviceClient::new(&config, dev_key).await?;
+            match dev_args.subcommand().unwrap() {
+                ("status", sub_args) => cmd::device::status(&config, client, sub_args).await,
+                _ => unreachable!(),
+            }
+        }
         _ => unreachable!(),
     }
     .with_context(|| format!("\r{} failed", args.subcommand_name().unwrap()))
