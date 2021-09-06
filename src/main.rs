@@ -24,6 +24,7 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
+    sodiumoxide::init().expect("Failed to initialize the crypto library");
 
     let args = clap::App::new("aegisd")
         .about("Server-side daemon for Aegis client protection")
