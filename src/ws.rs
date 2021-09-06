@@ -1,3 +1,4 @@
+use crate::crypto::check_signature;
 use crate::device_handlers::{device_handler_iter, DeviceHandlerFn};
 use actix::{
     Actor, ActorContext, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
@@ -6,6 +7,7 @@ use actix::{
 use actix_http::ws;
 use actix_web::web::{Bytes, BytesMut};
 use actix_web_actors::ws::WebsocketContext;
+use sodiumoxide::crypto::sign::PublicKey;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tracing::{error, info, warn};
@@ -27,18 +29,20 @@ lazy_static::lazy_static! {
 #[rtype(result = "()")]
 pub struct WsResponse {
     is_ok: bool,
-    msg_id: String,
+    msg_id: Bytes,
     payload: Bytes,
 }
 
 pub struct WsConn {
+    device_pk: PublicKey,
     last_heartbeat: Instant,
     remote_addr_untrusted: String,
 }
 
 impl WsConn {
-    pub fn new(remote_addr_untrusted: String) -> WsConn {
+    pub fn new(device_pk: PublicKey, remote_addr_untrusted: String) -> WsConn {
         WsConn {
+            device_pk,
             last_heartbeat: Instant::now(),
             remote_addr_untrusted,
         }
@@ -79,14 +83,19 @@ impl WsConn {
                 return;
             }
         };
-        let msg_id = match std::str::from_utf8(msg_id) {
-            Ok(msg_id) => msg_id.to_owned(),
-            _ => {
-                warn!(%remote_addr, "Websocket msg_id is not valid UTF-8");
-                return;
-            }
-        };
+        let msg_id = payload.slice_ref(msg_id);
         let data = payload.slice_ref(data);
+
+        // msg_id is actually also a randomized signature!
+        if !check_signature(&self.device_pk, &msg_id, &payload) {
+            warn!(%remote_addr, %handler, "Invalid websocket message signature");
+            ctx.notify(WsResponse {
+                is_ok: false,
+                msg_id,
+                payload: "invalid signature".into(),
+            });
+            return;
+        }
 
         let handler = match HANDLER_MAP.get(handler) {
             Some(handler) => handler,
@@ -127,7 +136,7 @@ impl Handler<WsResponse> for WsConn {
     type Result = ();
 
     fn handle(&mut self, msg: WsResponse, ctx: &mut Self::Context) {
-        let mut ws_header = BytesMut::from(msg.msg_id.as_bytes());
+        let mut ws_header = BytesMut::from(msg.msg_id.as_ref());
         if msg.is_ok {
             ws_header.extend_from_slice(b" ok ");
         } else {
