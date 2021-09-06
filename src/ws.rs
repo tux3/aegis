@@ -73,18 +73,20 @@ impl WsConn {
                     size = payload.len(),
                     "Invalid websocket message"
                 );
-                return;
-            }
-        };
-        let handler = match std::str::from_utf8(handler) {
-            Ok(handler) => handler,
-            _ => {
-                warn!(%remote_addr, "Websocket handler name is not valid UTF-8");
+                ctx.close(Some(ws::CloseCode::Protocol.into()));
                 return;
             }
         };
         let msg_id = payload.slice_ref(msg_id);
         let data = payload.slice_ref(data);
+        let handler = match std::str::from_utf8(handler) {
+            Ok(handler) => handler,
+            _ => {
+                warn!(%remote_addr, "Websocket handler name is not valid UTF-8");
+                ctx.close(Some(ws::CloseCode::Protocol.into()));
+                return;
+            }
+        };
 
         // msg_id is actually also a randomized signature!
         if !check_signature(&self.device_pk, &msg_id, &payload) {
