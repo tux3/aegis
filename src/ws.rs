@@ -7,6 +7,7 @@ use actix_http::ws;
 use actix_web::web::{Bytes, BytesMut};
 use actix_web_actors::ws::WebsocketContext;
 use aegislib::crypto::check_signature;
+use sodiumoxide::base64;
 use sodiumoxide::crypto::sign::PublicKey;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -60,9 +61,9 @@ impl WsConn {
         });
     }
 
-    fn handle_message_data(&self, ctx: &mut WebsocketContext<Self>, payload: Bytes) {
+    fn handle_message_data(&self, ctx: &mut WebsocketContext<Self>, raw_payload: Bytes) {
         // WS message format: <msg_id> <handler> <data>
-        let mut elems = payload.splitn(3, |&c| c == b' ');
+        let mut elems = raw_payload.splitn(3, |&c| c == b' ');
         let remote_addr = self.remote_addr_untrusted.as_str();
         let (msg_id, handler, data) = match (elems.next(), elems.next(), elems.next(), elems.next())
         {
@@ -70,15 +71,23 @@ impl WsConn {
             _ => {
                 warn!(
                     %remote_addr,
-                    size = payload.len(),
+                    size = raw_payload.len(),
                     "Invalid websocket message"
                 );
                 ctx.close(Some(ws::CloseCode::Protocol.into()));
                 return;
             }
         };
-        let msg_id = payload.slice_ref(msg_id);
-        let data = payload.slice_ref(data);
+        let msg_id = raw_payload.slice_ref(msg_id);
+        let signature = match base64::decode(&msg_id, base64::Variant::UrlSafeNoPadding) {
+            Ok(msg_id) => Bytes::from(msg_id),
+            Err(_) => {
+                warn!(%remote_addr, "Websocket msg_id is invalid base64");
+                ctx.close(Some(ws::CloseCode::Protocol.into()));
+                return;
+            }
+        };
+        let data = raw_payload.slice_ref(data);
         let handler = match std::str::from_utf8(handler) {
             Ok(handler) => handler,
             _ => {
@@ -89,7 +98,7 @@ impl WsConn {
         };
 
         // msg_id is actually also a randomized signature!
-        if !check_signature(&self.device_pk, &msg_id, &payload) {
+        if !check_signature(&self.device_pk, &signature, &data) {
             warn!(%remote_addr, %handler, "Invalid websocket message signature");
             ctx.notify(WsResponse {
                 is_ok: false,
