@@ -7,6 +7,7 @@ use actix_web::{get, Error, HttpRequest, HttpResponse, Responder};
 use sodiumoxide::base64;
 use sodiumoxide::base64::Variant::UrlSafeNoPadding;
 use sodiumoxide::crypto::sign::PublicKey;
+use tracing::debug;
 
 #[get("/health")]
 pub async fn health() -> impl Responder {
@@ -30,9 +31,11 @@ pub async fn websocket(
         Some(pk) => pk,
         None => return Err(ErrorBadRequest("Invalid device_id")),
     };
-    let ws = WsConn::new(device_pk, remote_addr);
+    let ws = WsConn::new(device_pk, remote_addr.clone());
 
     // Upgrade to a websocket
     let resp = actix_web_actors::ws::start(ws, &req, stream)?;
+
+    debug!(%remote_addr, "Device websocket connection established");
     Ok(resp)
 }
