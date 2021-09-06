@@ -1,9 +1,9 @@
-use crate::crypto::check_signature;
 use actix_router::Resource;
 use actix_service::{Service, Transform};
 use actix_web::error::{ErrorBadRequest, ErrorForbidden};
 use actix_web::web::BytesMut;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
+use aegislib::crypto::check_signature;
 use futures::future::{ok, Future, Ready};
 use futures::stream::StreamExt;
 use sodiumoxide::base64::{self, Variant::UrlSafeNoPadding};

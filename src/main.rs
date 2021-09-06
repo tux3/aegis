@@ -1,5 +1,4 @@
 mod config;
-mod crypto;
 mod device_handlers;
 mod middleware;
 mod root_handlers;

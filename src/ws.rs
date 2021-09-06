@@ -1,4 +1,3 @@
-use crate::crypto::check_signature;
 use crate::device_handlers::{device_handler_iter, DeviceHandlerFn};
 use actix::{
     Actor, ActorContext, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
@@ -7,6 +6,7 @@ use actix::{
 use actix_http::ws;
 use actix_web::web::{Bytes, BytesMut};
 use actix_web_actors::ws::WebsocketContext;
+use aegislib::crypto::check_signature;
 use sodiumoxide::crypto::sign::PublicKey;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
