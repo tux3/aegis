@@ -1,4 +1,3 @@
-use actix_router::Resource;
 use actix_service::{Service, Transform};
 use actix_web::error::{ErrorBadRequest, ErrorForbidden};
 use actix_web::web::BytesMut;
@@ -53,7 +52,7 @@ where
 
         Box::pin(async move {
             let device_pk = req
-                .resource_path()
+                .match_info()
                 .get("device_pk")
                 .and_then(|pk| base64::decode(pk, UrlSafeNoPadding).ok())
                 .and_then(|pk| sign::PublicKey::from_slice(&pk));
