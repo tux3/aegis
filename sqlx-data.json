@@ -1,3 +1,203 @@
 {
-  "db": "PostgreSQL"
+  "db": "PostgreSQL",
+  "05ceb1edd25aee9de8fb37bf9f8db34171bd6bdc726dc47248f5b45624cb7d2d": {
+    "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device LIMIT $1 OFFSET $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey: _",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "4bb076348fdf356611c74b52e127106fb7d40c20570e9d599ba358d16b2d6ba8": {
+    "query": "INSERT INTO device (created_at, name, pubkey, pending) VALUES ($1, $2, $3, $4) RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Text",
+          "Bytea",
+          "Bool"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "8e84d6dd4d0f3b70871d0da0862ae47ebd43321e7d418554a25b10513a500b6c": {
+    "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device WHERE id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey: _",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "99041986a28814bb930760aa99badcfd45edf6d506deb74c57053a2cbd42781a": {
+    "query": "SELECT COUNT(*) FROM device WHERE pending = TRUE",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "bc66c506dafbcb190f3a8a5a4b5ea30eba7e9c61fbedf4ac37c7d1928b281ef8": {
+    "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey: _",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "d2bee6c970f6818e218a450b8cbfeb97d240257f4296378bc21e56a7623b75da": {
+    "query": "UPDATE device SET created_at = $1, name = $2, pubkey = $3, pending = $4 WHERE id = $5",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Text",
+          "Bytea",
+          "Bool",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "fc4d862ae0ce717c35a30126aec24fe8c0a5d47004d87fd1b61e7e8db28176f9": {
+    "query": "DELETE FROM device WHERE id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  }
 }

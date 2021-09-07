@@ -1,11 +1,12 @@
 mod config;
 mod device_handlers;
 mod middleware;
+mod model;
 mod root_handlers;
 mod ws;
 
 use crate::device_handlers::device_handler_iter;
-use crate::root_handlers::{health, websocket};
+use crate::root_handlers::{health, register, websocket};
 use actix_web::{web, App, HttpServer};
 use anyhow::Result;
 use clap::Arg;
@@ -61,6 +62,7 @@ async fn main() -> Result<()> {
         let app = App::new()
             .app_data(pool.clone())
             .service(websocket)
+            .service(register)
             .service(health);
 
         let mut device_scope =
