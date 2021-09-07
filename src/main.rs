@@ -53,6 +53,10 @@ async fn main() -> Result<()> {
         .unwrap_or_else(config::default_path);
     let config = config::Config::from_file(config_path);
 
+    if !cfg!(debug_assertions) && !config.use_tls {
+        tracing::warn!("TLS should be enabled in release configurations!");
+    }
+
     match args.subcommand().unwrap() {
         ("gen-device-key", sub_args) => cmd::gen_device_key(&config, sub_args).await,
         ("derive-root-pubkey", sub_args) => cmd::derive_root_pubkey(&config, sub_args).await,

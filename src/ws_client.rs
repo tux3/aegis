@@ -21,7 +21,8 @@ pub struct WsClient {
 impl WsClient {
     pub async fn new_device_client(config: &Config, key: sign::SecretKey) -> Result<Self> {
         let pk = base64::encode(key.public_key(), base64::Variant::UrlSafeNoPadding);
-        let ws_url = format!("ws://{}/ws/{}", &config.server_addr, pk);
+        let proto = if config.use_tls { "wss://" } else { "ws://" };
+        let ws_url = format!("{}{}/ws/{}", proto, &config.server_addr, pk);
         let (ws_stream, _) = connect_async(ws_url).await?;
         debug!("WebSocket handshake completed");
 

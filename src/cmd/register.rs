@@ -11,10 +11,15 @@ pub async fn register(config: &Config, args: &ArgMatches) -> Result<()> {
     let pk = sk.public_key();
     let pk = base64::encode(pk.as_ref(), base64::Variant::UrlSafeNoPadding);
     let client = reqwest::Client::new();
+    let proto = if config.use_tls {
+        "https://"
+    } else {
+        "http://"
+    };
     let reply = client
         .post(format!(
-            "http://{}/register/{}/name/{}",
-            &config.server_addr, pk, name
+            "{}{}/register/{}/name/{}",
+            proto, &config.server_addr, pk, name
         ))
         .send()
         .await?;
