@@ -7,6 +7,7 @@ use actix_web::{get, Error, HttpRequest, HttpResponse, Responder};
 use sodiumoxide::base64;
 use sodiumoxide::base64::Variant::UrlSafeNoPadding;
 use sodiumoxide::crypto::sign::PublicKey;
+use sqlx::PgPool;
 use tracing::debug;
 
 #[get("/health")]
@@ -20,6 +21,10 @@ pub async fn websocket(
     stream: Payload,
     path: Path<(String,)>,
 ) -> Result<HttpResponse, Error> {
+    let db = req
+        .app_data::<PgPool>()
+        .cloned()
+        .expect("Missing db in websocket handler");
     let remote_addr = req
         .connection_info()
         .realip_remote_addr() // Not trusted!
@@ -31,7 +36,7 @@ pub async fn websocket(
         Some(pk) => pk,
         None => return Err(ErrorBadRequest("Invalid device_id")),
     };
-    let ws = WsConn::new(device_pk, remote_addr.clone());
+    let ws = WsConn::new(db, device_pk, remote_addr.clone());
 
     // Upgrade to a websocket
     let resp = actix_web_actors::ws::start(ws, &req, stream)?;

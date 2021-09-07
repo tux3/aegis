@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
         let mut device_scope =
             web::scope("/device/{device_pk}").wrap(middleware::DeviceReqTransform);
         for handler in device_handler_iter() {
-            device_scope = device_scope.route(handler.path, web::post().to(handler.handler));
+            device_scope = device_scope.route(handler.path, web::post().to(handler.http_handler));
         }
         app.service(device_scope)
     };

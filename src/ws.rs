@@ -9,6 +9,7 @@ use actix_web_actors::ws::WebsocketContext;
 use aegislib::crypto::check_signature;
 use sodiumoxide::base64;
 use sodiumoxide::crypto::sign::PublicKey;
+use sqlx::PgPool;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tracing::{error, info, warn};
@@ -35,14 +36,16 @@ pub struct WsResponse {
 }
 
 pub struct WsConn {
+    db: PgPool,
     device_pk: PublicKey,
     last_heartbeat: Instant,
     remote_addr_untrusted: String,
 }
 
 impl WsConn {
-    pub fn new(device_pk: PublicKey, remote_addr_untrusted: String) -> WsConn {
+    pub fn new(db: PgPool, device_pk: PublicKey, remote_addr_untrusted: String) -> WsConn {
         WsConn {
+            db,
             device_pk,
             last_heartbeat: Instant::now(),
             remote_addr_untrusted,
@@ -122,8 +125,9 @@ impl WsConn {
         };
 
         let self_addr = ctx.address().recipient();
+        let db = self.db.clone();
         let fut = async move {
-            let reply_bytes = match handler(data).await {
+            let reply_bytes = match handler(db, data).await {
                 Ok(reply) => WsResponse {
                     is_ok: true,
                     msg_id,
