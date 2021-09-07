@@ -27,6 +27,10 @@ async fn main() -> Result<()> {
             (about: "Generate a random device key file")
             (@arg output: +required "The destination file")
         )
+        (@subcommand "derive-root-pubkey" =>
+            (about: "Generate a root public signature key from a password")
+            (@arg password: "The password for the new root key")
+        )
         (@subcommand "register" =>
             (about: "Register as a device pending validation by an admin")
             (@arg key: +required "The device private key file")
@@ -51,6 +55,7 @@ async fn main() -> Result<()> {
 
     match args.subcommand().unwrap() {
         ("gen-device-key", sub_args) => cmd::gen_device_key(&config, sub_args).await,
+        ("derive-root-pubkey", sub_args) => cmd::derive_root_pubkey(&config, sub_args).await,
         ("register", sub_args) => cmd::register(&config, sub_args).await,
         ("device", dev_args) => {
             let dev_key = priv_sign_key_from_file(dev_args.value_of_os("key").unwrap())?;
