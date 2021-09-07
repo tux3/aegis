@@ -1,4 +1,4 @@
-use crate::device_handlers::{device_handler_iter, DeviceHandlerFn};
+use crate::handler::device::{device_handler_iter, DeviceHandlerFn};
 use actix::{
     Actor, ActorContext, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
     WrapFuture,

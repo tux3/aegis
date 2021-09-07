@@ -1,13 +1,13 @@
 mod config;
-mod device_handlers;
 mod error;
+mod handler;
 mod middleware;
 mod model;
-mod root_handlers;
 mod ws;
 
-use crate::device_handlers::device_handler_iter;
-use crate::root_handlers::{health, register, websocket};
+use crate::handler::device::device_handler_iter;
+use crate::handler::root::{health, register, websocket};
+use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
 use anyhow::Result;
 use clap::Arg;
@@ -59,12 +59,17 @@ async fn main() -> Result<()> {
     sqlx::migrate!().run(&pool).await?;
     info!("Migration done");
 
+    let app_config = Data::new(config.clone());
     let app_fn = move || {
         let app = App::new()
             .app_data(pool.clone())
+            .app_data(app_config.clone())
             .service(websocket)
             .service(register)
             .service(health);
+
+        let admin_scope = web::scope("/admin/").wrap(middleware::AdminReqTransform);
+        let app = app.service(admin_scope);
 
         let mut device_scope =
             web::scope("/device/{device_pk}").wrap(middleware::DeviceReqTransform);
