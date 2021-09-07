@@ -9,6 +9,7 @@ use crate::root_handlers::{health, websocket};
 use actix_web::{web, App, HttpServer};
 use anyhow::Result;
 use clap::Arg;
+use sqlx::postgres::PgPoolOptions;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -39,8 +40,25 @@ async fn main() -> Result<()> {
     let config_path = args.value_of_os("config").unwrap();
     let config = config::Config::from_file(config_path);
 
-    let app_fn = || {
-        let app = App::new().service(websocket).service(health);
+    let pool = PgPoolOptions::new()
+        .max_connections(config.db_max_conn)
+        .connect(&format!(
+            "postgres://{}:{}@{}/{}",
+            config.db_user, config.db_pass, config.db_host, config.db_name
+        ))
+        .await?;
+    info!(
+        db_host = &*config.db_host,
+        db_name = &*config.db_name,
+        db_user = &*config.db_user,
+        "Connected to database"
+    );
+
+    let app_fn = move || {
+        let app = App::new()
+            .app_data(pool.clone())
+            .service(websocket)
+            .service(health);
 
         let mut device_scope =
             web::scope("/device/{device_pk}").wrap(middleware::DeviceReqTransform);
