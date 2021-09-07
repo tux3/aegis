@@ -10,9 +10,6 @@ use clap::{clap_app, AppSettings};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    if std::env::var("RUST_LIB_BACKTRACE").is_err() {
-        std::env::set_var("RUST_LIB_BACKTRACE", "1")
-    }
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info")
     }
@@ -29,6 +26,11 @@ async fn main() -> Result<()> {
         (@subcommand "gen-device-key" =>
             (about: "Generate a random device key file")
             (@arg output: +required "The destination file")
+        )
+        (@subcommand "register" =>
+            (about: "Register as a device pending validation by an admin")
+            (@arg key: +required "The device private key file")
+            (@arg name: +required "The device's name")
         )
         (@subcommand "device" =>
             (about: "Send requests as if running on a device")
@@ -49,6 +51,7 @@ async fn main() -> Result<()> {
 
     match args.subcommand().unwrap() {
         ("gen-device-key", sub_args) => cmd::gen_device_key(&config, sub_args).await,
+        ("register", sub_args) => cmd::register(&config, sub_args).await,
         ("device", dev_args) => {
             let dev_key = priv_sign_key_from_file(dev_args.value_of_os("key").unwrap())?;
             let client = DeviceClient::new(&config, dev_key).await?;
