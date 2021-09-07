@@ -40,6 +40,12 @@ async fn main() -> Result<()> {
     let config_path = args.value_of_os("config").unwrap();
     let config = config::Config::from_file(config_path);
 
+    info!(
+        db_host = &*config.db_host,
+        db_name = &*config.db_name,
+        db_user = &*config.db_user,
+        "Connecting to database..."
+    );
     let pool = PgPoolOptions::new()
         .max_connections(config.db_max_conn)
         .connect(&format!(
@@ -47,12 +53,9 @@ async fn main() -> Result<()> {
             config.db_user, config.db_pass, config.db_host, config.db_name
         ))
         .await?;
-    info!(
-        db_host = &*config.db_host,
-        db_name = &*config.db_name,
-        db_user = &*config.db_user,
-        "Connected to database"
-    );
+    info!("Running migrations...");
+    sqlx::migrate!().run(&pool).await?;
+    info!("Migration done");
 
     let app_fn = move || {
         let app = App::new()
