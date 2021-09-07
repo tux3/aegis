@@ -1,10 +1,10 @@
 //! Root handlers are unauthenticated. They are reachable only by REST, not by websocket.
 
+use crate::error::{bail, Error};
 use crate::model::device::{count_pending, PendingDevice};
 use crate::ws::WsConn;
-use actix_web::error::{ErrorBadRequest, ErrorInternalServerError};
 use actix_web::web::{Path, Payload};
-use actix_web::{get, post, Error, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, post, HttpRequest, HttpResponse, Responder};
 use futures::StreamExt;
 use ormx::Insert;
 use sodiumoxide::base64;
@@ -34,7 +34,7 @@ pub async fn websocket(
     let device_pk = base64::decode(device_pk, UrlSafeNoPadding).ok();
     let device_pk = match device_pk.and_then(|pk| PublicKey::from_slice(&pk)) {
         Some(pk) => pk,
-        None => return Err(ErrorBadRequest("Invalid device_id")),
+        None => bail!("Invalid device_id"),
     };
     let ws = WsConn::new(db, device_pk, remote_addr.clone());
 
@@ -52,25 +52,20 @@ pub async fn register(
     path: Path<(String, String)>,
 ) -> Result<HttpResponse, Error> {
     if body.next().await.is_some() {
-        return Err(ErrorBadRequest("Unexpected body"));
+        bail!("Unexpected body");
     }
     let (device_pk, name) = path.into_inner();
     let device_pk = base64::decode(device_pk, UrlSafeNoPadding).ok();
     let device_pk = match device_pk.and_then(|pk| PublicKey::from_slice(&pk)) {
         Some(pk) => pk,
-        None => return Err(ErrorBadRequest("Invalid device_id")),
+        None => bail!("Invalid device_id"),
     };
 
     let db = req.app_data::<PgPool>().cloned().unwrap();
-    let mut conn = db
-        .acquire()
-        .await
-        .map_err(|e| ErrorInternalServerError(format!("{}", e)))?;
-    let count = count_pending(&mut *conn)
-        .await
-        .map_err(|e| ErrorInternalServerError(format!("{}", e)))?;
-    if count >= 3 {
-        return Err(ErrorBadRequest("Too many pending devices"));
+    let mut conn = db.acquire().await?;
+
+    if count_pending(&mut *conn).await? >= 3 {
+        bail!("Too many pending devices");
     }
 
     PendingDevice {
@@ -78,7 +73,6 @@ pub async fn register(
         pubkey: device_pk.into(),
     }
     .insert(&mut *conn)
-    .await
-    .map_err(|e| ErrorInternalServerError(format!("{}", e)))?;
+    .await?;
     Ok(HttpResponse::Ok().finish())
 }
