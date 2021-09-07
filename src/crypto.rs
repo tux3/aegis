@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use signature::Signature;
-use sodiumoxide::crypto::sign;
+use sodiumoxide::crypto::{aead, generichash, pwhash, sign};
 use sodiumoxide::randombytes::randombytes;
 use std::path::Path;
 
@@ -50,4 +50,36 @@ pub fn priv_sign_key_from_file(path: impl AsRef<Path>) -> Result<sign::SecretKey
         ),
         Some(k) => Ok(k),
     }
+}
+
+pub struct RootKeys {
+    pub sig: sign::SecretKey,
+    pub enc: aead::Key,
+}
+
+pub fn derive_root_keys(password: &str) -> Result<RootKeys> {
+    let secret_buf = &mut [0u8; 64];
+    let salt = b"expand password into 64-byte key"; // Not much up my sleeve, promise!
+    let salt = pwhash::Salt::from_slice(salt.as_ref()).unwrap();
+    pwhash::derive_key_interactive(secret_buf, password.as_bytes(), &salt)
+        .expect("failed to derive root keys (unknown libsodium error)");
+
+    let sig_seed = generichash::hash(
+        secret_buf,
+        Some(sign::SEEDBYTES),
+        Some(b"root signature key seed".as_ref()),
+    )
+    .expect("failed to derive root sig key seed (unknown libsodium error)");
+    let sig_seed = sign::Seed::from_slice(sig_seed.as_ref()).unwrap();
+    let sig = sign::keypair_from_seed(&sig_seed).1;
+
+    let enc = generichash::hash(
+        secret_buf,
+        Some(aead::KEYBYTES),
+        Some(b"root encryption key".as_ref()),
+    )
+    .expect("failed to derive root enc key (unknown libsodium error)");
+    let enc = aead::Key::from_slice(enc.as_ref()).unwrap();
+
+    Ok(RootKeys { sig, enc })
 }
