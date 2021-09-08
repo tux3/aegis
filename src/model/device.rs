@@ -166,3 +166,17 @@ pub async fn list_registered(conn: &mut PgConnection) -> Result<Vec<Device>> {
         })
         .collect())
 }
+
+pub async fn delete_registered(conn: &mut PgConnection, name: &str) -> Result<()> {
+    let result = sqlx::query!(
+        "DELETE FROM device WHERE pending = FALSE AND name = $1",
+        name
+    )
+    .execute(conn)
+    .await?;
+    if result.rows_affected() != 1 {
+        debug_assert_eq!(result.rows_affected(), 0); // name is UNIQUE
+        bail!("Device '{}' not found", name);
+    }
+    Ok(())
+}

@@ -68,6 +68,18 @@
       ]
     }
   },
+  "4c96df47d05cc5b17e5652267bdea54cea8f50ba16e18a748e0fc2a6c47ca306": {
+    "query": "DELETE FROM device WHERE pending = FALSE AND name = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "534b7fca695fc0cf63b1ab554ae627a80eb829339a3671cbd1f1ebf6c3efad26": {
     "query": "SELECT * FROM device WHERE pending = FALSE",
     "describe": {

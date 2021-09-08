@@ -39,3 +39,9 @@ pub async fn list_registered_devices(db: &mut PgConnection) -> Result<Vec<Regist
         .map(Into::into)
         .collect())
 }
+
+#[admin_handler("/delete_registered_device")]
+pub async fn delete_registered_device(db: &mut PgConnection, name: String) -> Result<()> {
+    delete_registered(db, &name).await?;
+    Ok(())
+}
