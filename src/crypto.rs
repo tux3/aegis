@@ -9,10 +9,15 @@ use std::path::Path;
 const SIGNATURE_RANDOM_BUF_LEN: usize = 16;
 const SIGNATURE_FULL_LEN: usize = SIGNATURE_RANDOM_BUF_LEN + sign::SIGNATUREBYTES;
 
-pub fn randomized_signature(private_key: &sign::SecretKey, payload: &[u8]) -> Vec<u8> {
+pub fn randomized_signature(
+    private_key: &sign::SecretKey,
+    route: &[u8],
+    payload: &[u8],
+) -> Vec<u8> {
     let random_buf = randombytes(SIGNATURE_RANDOM_BUF_LEN);
     let mut signer = sign::State::init();
     signer.update(&random_buf);
+    signer.update(route);
     signer.update(payload);
     let mut result = random_buf;
     result.extend_from_slice(signer.finalize(private_key).as_bytes());
@@ -23,6 +28,7 @@ pub fn randomized_signature(private_key: &sign::SecretKey, payload: &[u8]) -> Ve
 pub fn check_signature(
     public_key: &sign::PublicKey,
     randomized_signature: &[u8],
+    route: &[u8],
     payload: &[u8],
 ) -> bool {
     if randomized_signature.len() != SIGNATURE_FULL_LEN {
@@ -37,6 +43,7 @@ pub fn check_signature(
 
     let mut verifier = sign::State::init();
     verifier.update(random_buf);
+    verifier.update(route);
     verifier.update(payload);
     verifier.verify(&signature, public_key)
 }
