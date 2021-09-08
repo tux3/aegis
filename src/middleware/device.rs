@@ -1,5 +1,6 @@
+use crate::model::device;
 use actix_service::{Service, Transform};
-use actix_web::error::{ErrorBadRequest, ErrorForbidden};
+use actix_web::error::{ErrorBadRequest, ErrorForbidden, ErrorInternalServerError};
 use actix_web::web::BytesMut;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
 use aegislib::crypto::check_signature;
@@ -7,6 +8,7 @@ use futures::future::{ok, Future, Ready};
 use futures::stream::StreamExt;
 use sodiumoxide::base64::{self, Variant::UrlSafeNoPadding};
 use sodiumoxide::crypto::sign;
+use sqlx::PgPool;
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -49,6 +51,7 @@ where
 
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let svc = self.service.clone();
+        let db = req.app_data::<PgPool>().cloned().unwrap();
 
         Box::pin(async move {
             let device_pk = req
@@ -60,6 +63,17 @@ where
                 Some(device_pk) => device_pk.to_owned(),
                 None => return Err(ErrorBadRequest("Invalid device_pk")),
             };
+            let mut conn = db
+                .acquire()
+                .await
+                .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
+            match device::is_key_registered(&mut conn, &device_pk).await {
+                Err(e) => return Err(ErrorInternalServerError(format!("Database error: {}", e))),
+                Ok(false) => return Err(ErrorForbidden("Device not registered")),
+                Ok(true) => {}
+            }
+            drop(conn);
+
             let auth_header = match req.headers().get("Authorization") {
                 Some(auth) => auth,
                 None => return Err(ErrorForbidden("Missing Authorization header")),

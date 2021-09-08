@@ -180,3 +180,13 @@ pub async fn delete_registered(conn: &mut PgConnection, name: &str) -> Result<()
     }
     Ok(())
 }
+
+pub async fn is_key_registered(conn: &mut PgConnection, key: &sign::PublicKey) -> Result<bool> {
+    let record = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM device WHERE pending = FALSE AND pubkey = $1",
+        key.as_ref()
+    )
+    .fetch_one(conn)
+    .await?;
+    Ok(matches!(record, Some(1)))
+}

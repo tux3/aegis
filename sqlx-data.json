@@ -184,6 +184,26 @@
       ]
     }
   },
+  "ad62e06517f634b4a63be0a2c1f5c4abeeebe1b831fe311e872490940208fec2": {
+    "query": "SELECT COUNT(*) FROM device WHERE pending = FALSE AND pubkey = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Bytea"
+        ]
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
   "bc66c506dafbcb190f3a8a5a4b5ea30eba7e9c61fbedf4ac37c7d1928b281ef8": {
     "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device",
     "describe": {
