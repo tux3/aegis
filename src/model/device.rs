@@ -1,3 +1,4 @@
+use anyhow::{bail, Result};
 use chrono::NaiveDateTime;
 use futures::future::BoxFuture;
 use ormx::{Insert, Table};
@@ -91,7 +92,7 @@ impl From<PendingDevice> for aegislib::command::admin::PendingDevice {
     }
 }
 
-pub async fn list_pending(conn: &mut PgConnection) -> sqlx::Result<Vec<PendingDevice>> {
+pub async fn list_pending(conn: &mut PgConnection) -> Result<Vec<PendingDevice>> {
     let record = sqlx::query!("SELECT * FROM device WHERE pending = TRUE")
         .fetch_all(conn)
         .await?;
@@ -105,9 +106,23 @@ pub async fn list_pending(conn: &mut PgConnection) -> sqlx::Result<Vec<PendingDe
         .collect())
 }
 
-pub async fn count_pending(conn: &mut PgConnection) -> sqlx::Result<i64> {
+pub async fn count_pending(conn: &mut PgConnection) -> Result<i64> {
     let record = sqlx::query!("SELECT COUNT(*) FROM device WHERE pending = TRUE")
         .fetch_one(conn)
         .await?;
     Ok(record.count.unwrap_or(0))
+}
+
+pub async fn delete_pending(conn: &mut PgConnection, name: &str) -> Result<()> {
+    let result = sqlx::query!(
+        "DELETE FROM device WHERE pending = TRUE AND name = $1",
+        name
+    )
+    .execute(conn)
+    .await?;
+    if result.rows_affected() != 1 {
+        debug_assert_eq!(result.rows_affected(), 0); // name is UNIQUE
+        bail!("Pending device '{}' not found", name);
+    }
+    Ok(())
 }

@@ -230,6 +230,18 @@
       ]
     }
   },
+  "f81978c7a0ef0415cb4be6739c2da1728bb5fa803ed5d40206b6118b361ff5ab": {
+    "query": "DELETE FROM device WHERE pending = TRUE AND name = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "fc4d862ae0ce717c35a30126aec24fe8c0a5d47004d87fd1b61e7e8db28176f9": {
     "query": "DELETE FROM device WHERE id = $1",
     "describe": {

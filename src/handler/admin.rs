@@ -3,7 +3,7 @@
 mod handler_inventory;
 pub use handler_inventory::admin_handler_iter;
 
-use crate::model::device::list_pending;
+use crate::model::device::*;
 use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
 use aegislib::command::admin::PendingDevice;
@@ -17,4 +17,10 @@ pub async fn list_pending_devices(db: &mut PgConnection) -> Result<Vec<PendingDe
         .into_iter()
         .map(Into::into)
         .collect())
+}
+
+#[admin_handler("/delete_pending_device")]
+pub async fn delete_pending_device(db: &mut PgConnection, name: String) -> Result<()> {
+    delete_pending(db, &name).await?;
+    Ok(())
 }
