@@ -50,6 +50,10 @@ async fn main() -> Result<()> {
                 (about: "Delete a device pending validation")
                 (@arg name: +required "The device's name")
             )
+            (@subcommand "confirm-pending" =>
+                (about: "Confirm a device pending validation")
+                (@arg name: +required "The device's name")
+            )
         )
         (@subcommand "device" =>
             (about: "Send requests as if running on a device")
@@ -91,6 +95,9 @@ async fn main() -> Result<()> {
                 }
                 ("delete-pending", sub_args) => {
                     cmd::admin::delete_pending(config, client, sub_args).await
+                }
+                ("confirm-pending", sub_args) => {
+                    cmd::admin::confirm_pending(config, client, sub_args).await
                 }
                 _ => unreachable!(),
             }
