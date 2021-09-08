@@ -101,7 +101,7 @@ impl WsConn {
         };
 
         // msg_id is actually also a randomized signature!
-        if !check_signature(&self.device_pk, &signature, &data) {
+        if !check_signature(&self.device_pk, &signature, handler.as_bytes(), &data) {
             warn!(%remote_addr, %handler, "Invalid websocket message signature");
             ctx.notify(WsResponse {
                 is_ok: false,

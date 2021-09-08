@@ -78,8 +78,9 @@ where
             while let Some(chunk) = stream.next().await {
                 body.extend_from_slice(&chunk?);
             }
+            let route = req.path().as_bytes();
 
-            if !check_signature(&device_pk, &randomized_signature, body.as_ref()) {
+            if !check_signature(&device_pk, &randomized_signature, route, body.as_ref()) {
                 let remote_addr = req
                     .connection_info()
                     .realip_remote_addr()
