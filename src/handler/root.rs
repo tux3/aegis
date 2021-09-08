@@ -5,6 +5,7 @@ use crate::model::device::{count_pending, PendingDevice};
 use crate::ws::WsConn;
 use actix_web::web::{Path, Payload};
 use actix_web::{get, post, HttpRequest, HttpResponse, Responder};
+use chrono::Utc;
 use futures::StreamExt;
 use ormx::Insert;
 use sodiumoxide::base64;
@@ -69,6 +70,7 @@ pub async fn register(
     }
 
     PendingDevice {
+        created_at: Utc::now().naive_utc(),
         name,
         pubkey: device_pk.into(),
     }

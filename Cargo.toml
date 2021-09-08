@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-device_handler_macro = { path = "device_handler_macro" }
+aegisd_handler_macros = { path = "handler_macros" }
 aegislib = { path  = "../aegislib" }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "net"], default-features = false }
 serde = { version = "1.0", features = ["derive"], default-features = false }

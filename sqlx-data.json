@@ -188,6 +188,48 @@
       "nullable": []
     }
   },
+  "eba4b28f942f7012b3ea7dbc8f72a539cc7536061a1f93d279c527f4762be6e6": {
+    "query": "SELECT * FROM device WHERE pending = TRUE",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "fc4d862ae0ce717c35a30126aec24fe8c0a5d47004d87fd1b61e7e8db28176f9": {
     "query": "DELETE FROM device WHERE id = $1",
     "describe": {

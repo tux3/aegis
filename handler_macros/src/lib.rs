@@ -2,26 +2,34 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, AttributeArgs, ItemFn, Lit, NestedMeta, Type};
+use syn::{parse_macro_input, AttributeArgs, ItemFn, Lit, LitStr, NestedMeta, Type};
 
-#[proc_macro_attribute]
-pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(args as AttributeArgs);
+fn check_attr_args(args: &[NestedMeta]) -> Result<&LitStr, TokenStream> {
     if args.len() != 1 {
-        return quote! {
+        return Err(quote! {
             compile_error!("device_handler takes a single path argument");
         }
-        .into();
+        .into());
     }
     let path = match &args[0] {
         NestedMeta::Lit(Lit::Str(str)) => str,
         _ => {
             let span = args[0].span();
-            return quote_spanned! {
+            return Err(quote_spanned! {
                 span => compile_error!("device_handler directly takes a string as path");
             }
-            .into();
+            .into());
         }
+    };
+    Ok(path)
+}
+
+#[proc_macro_attribute]
+pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(args as AttributeArgs);
+    let path = match check_attr_args(&args) {
+        Ok(path) => path,
+        Err(e) => return e,
     };
 
     let input = parse_macro_input!(input as ItemFn);
@@ -117,6 +125,97 @@ pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
                     })
             }
             #handler_fn_ident(db, body).await
+        }
+    };
+    outer_fn.into_token_stream().into()
+}
+
+#[proc_macro_attribute]
+pub fn admin_handler(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(args as AttributeArgs);
+    let path = match check_attr_args(&args) {
+        Ok(path) => path,
+        Err(e) => return e,
+    };
+
+    let input = parse_macro_input!(input as ItemFn);
+    let input_fn_ident = &input.sig.ident;
+    let http_fn_ident = syn::Ident::new(
+        &format!("__{}_http_handler", input_fn_ident.to_string()),
+        Span::call_site(),
+    );
+
+    if input.sig.asyncness.is_none() {
+        return quote_spanned! {
+            input_fn_ident.span() => compile_error!("admin_handlers must be async");
+        }
+        .into();
+    }
+    if !input.attrs.is_empty() {
+        return quote_spanned! {
+            input_fn_ident.span() => compile_error!("admin_handlers should not have other attributes");
+        }.into();
+    }
+
+    let args_span = input.sig.inputs.span();
+    if input.sig.inputs.len() != 2 {
+        return quote_spanned! {
+            args_span => compile_error!("admin_handlers take two argument: A db handle, and a deserializable Arg struct");
+        }
+            .into();
+    }
+    let db_arg = match &input.sig.inputs[0] {
+        syn::FnArg::Receiver(_) => {
+            return quote_spanned! {
+                args_span => compile_error!("admin_handlers do not take a receiver");
+            }
+            .into()
+        }
+        syn::FnArg::Typed(ty) => ty,
+    };
+
+    let input_arg = match &input.sig.inputs[1] {
+        syn::FnArg::Receiver(_) => {
+            return quote_spanned! {
+                args_span => compile_error!("admin_handlers do not take a receiver");
+            }
+            .into()
+        }
+        syn::FnArg::Typed(ty) => ty,
+    };
+    let input_arg_ty = &input_arg.ty;
+    let input_ret_ty = input.sig.output;
+    let input_block = &input.block;
+
+    let outer_fn = quote! {
+        pub async fn #http_fn_ident(req: actix_web::HttpRequest, body: Bytes) -> Result<Bytes, actix_web::Error> {
+            inventory::submit!(handler_inventory::AdminHandler {
+                path: #path,
+                http_handler: |req, arg| Box::pin(#http_fn_ident(req, arg)),
+            });
+
+            let db = req
+                .app_data::<sqlx::PgPool>()
+                .cloned()
+                .expect("Missing db app data in admin request handler");
+            let mut conn = db.acquire().await.map_err(|e| {
+                actix_web::error::ErrorInternalServerError(format!("DB connection failed: {}", e))
+            })?;
+            let args: #input_arg_ty = bincode::deserialize(body.as_ref()).map_err(|e| {
+                actix_web::error::ErrorBadRequest(format!("Invalid argument: {}", e))
+            })?;
+
+            async fn #input_fn_ident(#db_arg, #input_arg) #input_ret_ty {
+                #input_block
+            }
+
+            #input_fn_ident(&mut *conn, args)
+                .await
+                .map(|r| Bytes::from(bincode::serialize(&r).unwrap()))
+                .map_err(|e| match e.downcast_ref::<sqlx::Error>() {
+                    Some(db_err) => actix_web::error::ErrorInternalServerError(format!("{}", db_err)),
+                    None => actix_web::error::ErrorBadRequest(e),
+                })
         }
     };
     outer_fn.into_token_stream().into()

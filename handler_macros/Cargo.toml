@@ -1,5 +1,5 @@
 [package]
-name = "device_handler_macro"
+name = "aegisd_handler_macros"
 version = "0.1.0"
 edition = "2021"
 

@@ -5,6 +5,7 @@ mod middleware;
 mod model;
 mod ws;
 
+use crate::handler::admin::admin_handler_iter;
 use crate::handler::device::device_handler_iter;
 use crate::handler::root::{health, register, websocket};
 use actix_web::web::Data;
@@ -68,7 +69,10 @@ async fn main() -> Result<()> {
             .service(register)
             .service(health);
 
-        let admin_scope = web::scope("/admin/").wrap(middleware::AdminReqTransform);
+        let mut admin_scope = web::scope("/admin/").wrap(middleware::AdminReqTransform);
+        for handler in admin_handler_iter() {
+            admin_scope = admin_scope.route(handler.path, web::post().to(handler.http_handler));
+        }
         let app = app.service(admin_scope);
 
         let mut device_scope =

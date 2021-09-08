@@ -2,8 +2,8 @@
 mod handler_inventory;
 pub use handler_inventory::{device_handler_iter, DeviceHandlerFn};
 
+use aegisd_handler_macros::device_handler;
 use aegislib::command::device::{StatusArg, StatusReply};
-use device_handler_macro::device_handler;
 
 use actix_web::web::Bytes;
 use anyhow::Result;
