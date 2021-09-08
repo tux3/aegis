@@ -11,7 +11,7 @@ use anyhow::Result;
 use sqlx::PgConnection;
 
 #[admin_handler("/list_pending_devices")]
-pub async fn list_pending_devices(db: &mut PgConnection, _args: ()) -> Result<Vec<PendingDevice>> {
+pub async fn list_pending_devices(db: &mut PgConnection) -> Result<Vec<PendingDevice>> {
     Ok(list_pending(db)
         .await?
         .into_iter()
