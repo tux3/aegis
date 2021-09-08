@@ -24,3 +24,9 @@ pub async fn delete_pending_device(db: &mut PgConnection, name: String) -> Resul
     delete_pending(db, &name).await?;
     Ok(())
 }
+
+#[admin_handler("/confirm_pending_device")]
+pub async fn confirm_pending_device(db: &mut PgConnection, name: String) -> Result<()> {
+    confirm_pending(db, &name).await?;
+    Ok(())
+}

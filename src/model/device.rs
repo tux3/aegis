@@ -126,3 +126,17 @@ pub async fn delete_pending(conn: &mut PgConnection, name: &str) -> Result<()> {
     }
     Ok(())
 }
+
+pub async fn confirm_pending(conn: &mut PgConnection, name: &str) -> Result<()> {
+    let result = sqlx::query!(
+        "UPDATE device SET pending = FALSE WHERE name = $1 AND pending = TRUE",
+        name
+    )
+    .execute(conn)
+    .await?;
+    if result.rows_affected() != 1 {
+        debug_assert_eq!(result.rows_affected(), 0); // name is UNIQUE
+        bail!("Pending device '{}' not found", name);
+    }
+    Ok(())
+}
