@@ -35,4 +35,8 @@ impl AdminClient {
     pub async fn delete_pending(&mut self, name: String) -> Result<()> {
         self.do_request("delete_pending_device", name).await
     }
+
+    pub async fn confirm_pending(&mut self, name: String) -> Result<()> {
+        self.do_request("confirm_pending_device", name).await
+    }
 }
