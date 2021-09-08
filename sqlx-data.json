@@ -68,6 +68,48 @@
       ]
     }
   },
+  "534b7fca695fc0cf63b1ab554ae627a80eb829339a3671cbd1f1ebf6c3efad26": {
+    "query": "SELECT * FROM device WHERE pending = FALSE",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "8e84d6dd4d0f3b70871d0da0862ae47ebd43321e7d418554a25b10513a500b6c": {
     "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device WHERE id = $1",
     "describe": {

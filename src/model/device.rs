@@ -92,6 +92,16 @@ impl From<PendingDevice> for aegislib::command::admin::PendingDevice {
     }
 }
 
+impl From<Device> for aegislib::command::admin::RegisteredDevice {
+    fn from(dev: Device) -> Self {
+        Self {
+            created_at: dev.created_at,
+            name: dev.name,
+            pubkey: dev.pubkey.0,
+        }
+    }
+}
+
 pub async fn list_pending(conn: &mut PgConnection) -> Result<Vec<PendingDevice>> {
     let record = sqlx::query!("SELECT * FROM device WHERE pending = TRUE")
         .fetch_all(conn)
@@ -139,4 +149,20 @@ pub async fn confirm_pending(conn: &mut PgConnection, name: &str) -> Result<()> 
         bail!("Pending device '{}' not found", name);
     }
     Ok(())
+}
+
+pub async fn list_registered(conn: &mut PgConnection) -> Result<Vec<Device>> {
+    let record = sqlx::query!("SELECT * FROM device WHERE pending = FALSE")
+        .fetch_all(conn)
+        .await?;
+    Ok(record
+        .into_iter()
+        .map(|r| Device {
+            id: r.id,
+            created_at: r.created_at,
+            name: r.name,
+            pubkey: r.pubkey.try_into().unwrap(),
+            pending: r.pending,
+        })
+        .collect())
 }

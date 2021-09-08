@@ -6,7 +6,7 @@ pub use handler_inventory::admin_handler_iter;
 use crate::model::device::*;
 use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
-use aegislib::command::admin::PendingDevice;
+use aegislib::command::admin::{PendingDevice, RegisteredDevice};
 use anyhow::Result;
 use sqlx::PgConnection;
 
@@ -29,4 +29,13 @@ pub async fn delete_pending_device(db: &mut PgConnection, name: String) -> Resul
 pub async fn confirm_pending_device(db: &mut PgConnection, name: String) -> Result<()> {
     confirm_pending(db, &name).await?;
     Ok(())
+}
+
+#[admin_handler("/list_registered_devices")]
+pub async fn list_registered_devices(db: &mut PgConnection) -> Result<Vec<RegisteredDevice>> {
+    Ok(list_registered(db)
+        .await?
+        .into_iter()
+        .map(Into::into)
+        .collect())
 }
