@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod device;
 
 mod gen_device_key;

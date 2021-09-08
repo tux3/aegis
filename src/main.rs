@@ -1,7 +1,7 @@
 mod cmd;
 mod config;
 
-use aegislib::client::DeviceClient;
+use aegislib::client::{AdminClient, DeviceClient};
 use aegislib::crypto::priv_sign_key_from_file;
 use anyhow::{Context, Result};
 use clap::{clap_app, AppSettings};
@@ -40,6 +40,13 @@ async fn main() -> Result<()> {
             (@arg key: +required "The device private key file")
             (@arg name: +required "The device's name")
         )
+        (@subcommand "admin" =>
+            (about: "Send control request using the admin root keys")
+            (@arg key: +required "The admin root key file")
+            (@subcommand "list-pending" =>
+                (about: "List registered devices pending validation")
+            )
+        )
         (@subcommand "device" =>
             (about: "Send requests as if running on a device")
             (@arg key: +required "The device private key file")
@@ -70,6 +77,17 @@ async fn main() -> Result<()> {
         ("derive-root-key-file", sub_args) => cmd::derive_root_key_file(config, sub_args).await,
         ("derive-root-pubkey", sub_args) => cmd::derive_root_pubkey(config, sub_args).await,
         ("register", sub_args) => cmd::register(config, sub_args).await,
+        ("admin", admin_args) => {
+            let root_keys = std::fs::read(admin_args.value_of_os("key").unwrap())?;
+            let root_keys = bincode::deserialize(&root_keys)?;
+            let client = AdminClient::new(&config.into(), root_keys).await?;
+            match admin_args.subcommand().unwrap() {
+                ("list-pending", sub_args) => {
+                    cmd::admin::list_pending(config, client, sub_args).await
+                }
+                _ => unreachable!(),
+            }
+        }
         ("device", dev_args) => {
             let dev_key = priv_sign_key_from_file(dev_args.value_of_os("key").unwrap())?;
             let client = DeviceClient::new(&config.into(), dev_key).await?;
@@ -80,5 +98,5 @@ async fn main() -> Result<()> {
         }
         _ => unreachable!(),
     }
-    .with_context(|| format!("\r{} failed", args.subcommand_name().unwrap()))
+    .with_context(|| format!("\r{} command failed!", args.subcommand_name().unwrap()))
 }
