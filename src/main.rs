@@ -54,6 +54,9 @@ async fn main() -> Result<()> {
                 (about: "Confirm a device pending validation")
                 (@arg name: +required "The device's name")
             )
+            (@subcommand "list-device" =>
+                (about: "List valid registered devices")
+            )
         )
         (@subcommand "device" =>
             (about: "Send requests as if running on a device")
@@ -98,6 +101,9 @@ async fn main() -> Result<()> {
                 }
                 ("confirm-pending", sub_args) => {
                     cmd::admin::confirm_pending(config, client, sub_args).await
+                }
+                ("list-device", sub_args) => {
+                    cmd::admin::list_registered(config, client, sub_args).await
                 }
                 _ => unreachable!(),
             }

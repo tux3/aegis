@@ -6,3 +6,6 @@ pub use delete_pending::delete_pending;
 
 mod confirm_pending;
 pub use confirm_pending::confirm_pending;
+
+mod list_registered;
+pub use list_registered::list_registered;
