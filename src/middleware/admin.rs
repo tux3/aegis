@@ -1,7 +1,7 @@
 use crate::config::Config;
 use actix_service::{Service, Transform};
 use actix_web::error::ErrorForbidden;
-use actix_web::web::BytesMut;
+use actix_web::web::{BytesMut, Data};
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
 use aegislib::crypto::check_signature;
 use futures::future::{ok, Future, Ready};
@@ -51,7 +51,9 @@ where
         let svc = self.service.clone();
 
         Box::pin(async move {
-            let config = req.app_data::<Config>().expect("missing config app data");
+            let config = req
+                .app_data::<Data<Config>>()
+                .expect("missing config app data");
             let root_sig_pk = config.root_public_signature_key;
 
             let auth_header = match req.headers().get("Authorization") {
