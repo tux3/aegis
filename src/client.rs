@@ -4,6 +4,9 @@ pub use api_client::*;
 mod dev_client;
 pub use dev_client::*;
 
+mod admin_client;
+pub use admin_client::*;
+
 mod rest_client;
 pub use rest_client::*;
 

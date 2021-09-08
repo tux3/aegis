@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use serde::{Deserialize, Serialize};
 use signature::Signature;
 use sodiumoxide::crypto::{aead, generichash, pwhash, sign};
 use sodiumoxide::randombytes::randombytes;
@@ -21,6 +22,7 @@ pub fn randomized_signature(
     signer.update(payload);
     let mut result = random_buf;
     result.extend_from_slice(signer.finalize(private_key).as_bytes());
+
     debug_assert_eq!(result.len(), SIGNATURE_FULL_LEN);
     result
 }
@@ -59,6 +61,7 @@ pub fn priv_sign_key_from_file(path: impl AsRef<Path>) -> Result<sign::SecretKey
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct RootKeys {
     pub sig: sign::SecretKey,
     pub enc: aead::Key,
