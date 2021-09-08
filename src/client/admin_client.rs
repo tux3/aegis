@@ -31,4 +31,8 @@ impl AdminClient {
     pub async fn list_pending(&mut self) -> Result<Vec<PendingDevice>> {
         self.do_request("list_pending_devices", ()).await
     }
+
+    pub async fn delete_pending(&mut self, name: String) -> Result<()> {
+        self.do_request("delete_pending_device", name).await
+    }
 }
