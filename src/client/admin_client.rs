@@ -43,4 +43,8 @@ impl AdminClient {
     pub async fn list_registered(&mut self) -> Result<Vec<RegisteredDevice>> {
         self.do_request("list_registered_devices", ()).await
     }
+
+    pub async fn delete_registered(&mut self, name: String) -> Result<()> {
+        self.do_request("delete_registered_device", name).await
+    }
 }
