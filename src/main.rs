@@ -57,6 +57,10 @@ async fn main() -> Result<()> {
             (@subcommand "list-device" =>
                 (about: "List valid registered devices")
             )
+            (@subcommand "delete-device" =>
+                (about: "Delete a valid registered device")
+                (@arg name: +required "The device's name")
+            )
         )
         (@subcommand "device" =>
             (about: "Send requests as if running on a device")
@@ -104,6 +108,9 @@ async fn main() -> Result<()> {
                 }
                 ("list-device", sub_args) => {
                     cmd::admin::list_registered(config, client, sub_args).await
+                }
+                ("delete-device", sub_args) => {
+                    cmd::admin::delete_registered(config, client, sub_args).await
                 }
                 _ => unreachable!(),
             }
