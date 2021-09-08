@@ -1,5 +1,5 @@
 use crate::client::{ApiClient, ClientConfig, RestClient};
-use crate::command::admin::PendingDevice;
+use crate::command::admin::{PendingDevice, RegisteredDevice};
 use crate::crypto::{randomized_signature, RootKeys};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
@@ -38,5 +38,9 @@ impl AdminClient {
 
     pub async fn confirm_pending(&mut self, name: String) -> Result<()> {
         self.do_request("confirm_pending_device", name).await
+    }
+
+    pub async fn list_registered(&mut self) -> Result<Vec<RegisteredDevice>> {
+        self.do_request("list_registered_devices", ()).await
     }
 }
