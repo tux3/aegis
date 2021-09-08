@@ -46,6 +46,10 @@ async fn main() -> Result<()> {
             (@subcommand "list-pending" =>
                 (about: "List registered devices pending validation")
             )
+            (@subcommand "delete-pending" =>
+                (about: "Delete a device pending validation")
+                (@arg name: +required "The device's name")
+            )
         )
         (@subcommand "device" =>
             (about: "Send requests as if running on a device")
@@ -84,6 +88,9 @@ async fn main() -> Result<()> {
             match admin_args.subcommand().unwrap() {
                 ("list-pending", sub_args) => {
                     cmd::admin::list_pending(config, client, sub_args).await
+                }
+                ("delete-pending", sub_args) => {
+                    cmd::admin::delete_pending(config, client, sub_args).await
                 }
                 _ => unreachable!(),
             }
