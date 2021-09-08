@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::dev_client::DeviceClient;
+use aegislib::client::DeviceClient;
 use anyhow::Result;
 use clap::ArgMatches;
 

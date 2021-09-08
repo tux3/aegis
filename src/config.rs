@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 pub struct Config {
     pub server_addr: String,
     pub use_tls: bool,
+    #[serde(default)]
+    pub use_rest: bool,
 }
 
 impl Config {
@@ -21,4 +23,14 @@ pub fn default_path() -> PathBuf {
         None => panic!("Couldn't locate config directory"),
     };
     dirs.config_dir().join("conf.toml")
+}
+
+impl From<&Config> for aegislib::client::ClientConfig {
+    fn from(config: &Config) -> Self {
+        Self {
+            server_addr: config.server_addr.clone(),
+            use_tls: config.use_tls,
+            use_rest: config.use_rest,
+        }
+    }
 }

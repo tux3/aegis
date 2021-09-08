@@ -1,9 +1,7 @@
 mod cmd;
 mod config;
-mod dev_client;
-mod ws_client;
 
-use crate::dev_client::DeviceClient;
+use aegislib::client::DeviceClient;
 use aegislib::crypto::priv_sign_key_from_file;
 use anyhow::{Context, Result};
 use clap::{clap_app, AppSettings};
@@ -23,6 +21,7 @@ async fn main() -> Result<()> {
         (author: env!("CARGO_PKG_AUTHORS"))
         (about: env!("CARGO_PKG_DESCRIPTION"))
         (@arg config: -c --config +takes_value "Path to the config file")
+        (@arg use_rest: --rest "Use REST API instead of websockets")
         (@subcommand "gen-device-key" =>
             (about: "Generate a random device key file")
             (@arg output: +required "The destination file")
@@ -51,21 +50,25 @@ async fn main() -> Result<()> {
         .value_of_os("config")
         .map(|os| os.into())
         .unwrap_or_else(config::default_path);
-    let config = config::Config::from_file(config_path);
+    let mut config = config::Config::from_file(config_path);
+    if args.is_present("use_rest") {
+        config.use_rest = true;
+    }
+    let config = &config;
 
     if !cfg!(debug_assertions) && !config.use_tls {
         tracing::warn!("TLS should be enabled in release configurations!");
     }
 
     match args.subcommand().unwrap() {
-        ("gen-device-key", sub_args) => cmd::gen_device_key(&config, sub_args).await,
-        ("derive-root-pubkey", sub_args) => cmd::derive_root_pubkey(&config, sub_args).await,
-        ("register", sub_args) => cmd::register(&config, sub_args).await,
+        ("gen-device-key", sub_args) => cmd::gen_device_key(config, sub_args).await,
+        ("derive-root-pubkey", sub_args) => cmd::derive_root_pubkey(config, sub_args).await,
+        ("register", sub_args) => cmd::register(config, sub_args).await,
         ("device", dev_args) => {
             let dev_key = priv_sign_key_from_file(dev_args.value_of_os("key").unwrap())?;
-            let client = DeviceClient::new(&config, dev_key).await?;
+            let client = DeviceClient::new(&config.into(), dev_key).await?;
             match dev_args.subcommand().unwrap() {
-                ("status", sub_args) => cmd::device::status(&config, client, sub_args).await,
+                ("status", sub_args) => cmd::device::status(config, client, sub_args).await,
                 _ => unreachable!(),
             }
         }
