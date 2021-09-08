@@ -8,3 +8,6 @@ pub use register::register;
 
 mod derive_root_pubkey;
 pub use derive_root_pubkey::derive_root_pubkey;
+
+mod derive_root_key_file;
+pub use derive_root_key_file::derive_root_key_file;
