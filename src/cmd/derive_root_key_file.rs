@@ -1,5 +1,5 @@
 use crate::config::Config;
-use aegislib::crypto::derive_root_keys;
+use aegislib::crypto::RootKeys;
 use anyhow::Result;
 use clap::ArgMatches;
 
@@ -14,7 +14,7 @@ pub async fn derive_root_key_file(_config: &Config, args: &ArgMatches) -> Result
                 .interact()
                 .unwrap()
         });
-    let keys = bincode::serialize(&derive_root_keys(&password)?)?;
+    let keys = bincode::serialize(&RootKeys::derive(&password))?;
     std::fs::write(out_path, keys)?;
     Ok(())
 }

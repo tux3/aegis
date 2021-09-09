@@ -2,7 +2,7 @@ mod cmd;
 mod config;
 
 use aegislib::client::{AdminClient, DeviceClient};
-use aegislib::crypto::priv_sign_key_from_file;
+use aegislib::crypto::sign_keypair_from_file;
 use anyhow::{Context, Result};
 use clap::{clap_app, AppSettings};
 
@@ -14,7 +14,6 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
-    sodiumoxide::init().expect("Failed to initialize the crypto library");
 
     let args = clap_app!(aegiscli =>
         (version: env!("CARGO_PKG_VERSION"))
@@ -95,7 +94,7 @@ async fn main() -> Result<()> {
         ("admin", admin_args) => {
             let root_keys = std::fs::read(admin_args.value_of_os("key").unwrap())?;
             let root_keys = bincode::deserialize(&root_keys)?;
-            let client = AdminClient::new(&config.into(), root_keys).await?;
+            let client = AdminClient::new(&config.into(), &root_keys).await?;
             match admin_args.subcommand().unwrap() {
                 ("list-pending", sub_args) => {
                     cmd::admin::list_pending(config, client, sub_args).await
@@ -116,7 +115,7 @@ async fn main() -> Result<()> {
             }
         }
         ("device", dev_args) => {
-            let dev_key = priv_sign_key_from_file(dev_args.value_of_os("key").unwrap())?;
+            let dev_key = sign_keypair_from_file(dev_args.value_of_os("key").unwrap())?;
             let client = DeviceClient::new(&config.into(), dev_key).await?;
             match dev_args.subcommand().unwrap() {
                 ("status", sub_args) => cmd::device::status(config, client, sub_args).await,

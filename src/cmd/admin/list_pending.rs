@@ -3,7 +3,6 @@ use aegislib::client::AdminClient;
 use anyhow::Result;
 use clap::ArgMatches;
 use cli_table::{print_stdout, Cell, Style, Table};
-use sodiumoxide::base64;
 
 pub async fn list_pending(
     _config: &Config,
@@ -15,7 +14,7 @@ pub async fn list_pending(
         .into_iter()
         .map(|dev| {
             vec![
-                base64::encode(dev.pubkey, base64::Variant::UrlSafeNoPadding),
+                base64::encode_config(dev.pubkey, base64::URL_SAFE_NO_PAD),
                 dev.name,
                 format!("{}", dev.created_at),
             ]
