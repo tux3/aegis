@@ -1,6 +1,7 @@
 use crate::config::Config;
 use aegislib::client::AdminClient;
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use clap::ArgMatches;
 use cli_table::{print_stdout, Cell, Style, Table};
 
@@ -16,7 +17,7 @@ pub async fn list_registered(
             vec![
                 base64::encode_config(dev.pubkey, base64::URL_SAFE_NO_PAD),
                 dev.name,
-                format!("{}", dev.created_at),
+                format!("{:?}", DateTime::<Utc>::from(dev.created_at)),
             ]
         })
         .table()
