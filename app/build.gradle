@@ -28,14 +28,46 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
+        languageVersion = '1.5'
     }
     buildFeatures {
         viewBinding true
     }
 }
 
-dependencies {
+// UniFFI
+android.applicationVariants.all { variant ->
+    def libTask = tasks.register("build${variant.name.capitalize()}UniFFINativeLib", Exec) {
+        workingDir "${project.rootDir}"
 
+        var args = ['cargo', 'ndk', '--manifest-path=../aegislib/Cargo.toml',
+                    '-tx86', '-tarm64-v8a',
+                    '-o', 'app/src/main/jniLibs/',
+                    'build', '--features=client,ffi']
+        if (variant.name == "release")
+            args.add("--release")
+        println "Compiling native aegis library: ${args}"
+        commandLine args
+    }
+    variant.javaCompileProvider.get().dependsOn(libTask)
+
+    def genTask = tasks.register("generate${variant.name.capitalize()}UniFFIBindings", Exec) {
+        workingDir "${project.projectDir}"
+
+        def udlPath = "${project.rootDir}/../aegislib/src/client.udl"
+        println "Generating binding for "+udlPath
+        // Runs the bindings generation, note that you must have uniffi-bindgen installed and in your PATH environment variable
+        commandLine 'uniffi-bindgen', 'generate', udlPath, '--language', 'kotlin', '--out-dir', "${buildDir}/generated/source/uniffi/${variant.name}/java"
+    }
+    variant.javaCompileProvider.get().dependsOn(genTask)
+    def sourceSet = variant.sourceSets.find { it.name == variant.name }
+    sourceSet.java.srcDir new File(buildDir, "generated/source/uniffi/${variant.name}/java")
+    // XXX: I've been trying to make this work but I can't, so the compiled bindings will show as "regular sources" in Android Studio.
+    //idea.module.generatedSourceDirs += file("${buildDir}/generated/source/uniffi/${variant.name}/java/uniffi")
+}
+
+dependencies {
+    // Base
     implementation 'androidx.core:core-ktx:1.6.0'
     implementation 'androidx.appcompat:appcompat:1.3.1'
     implementation 'com.google.android.material:material:1.4.0'
@@ -46,4 +78,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+
+    // FFI
+    implementation "net.java.dev.jna:jna:5.7.0@aar"
 }
