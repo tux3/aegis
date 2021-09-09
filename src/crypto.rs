@@ -53,6 +53,16 @@ pub fn check_signature(
         .is_ok()
 }
 
+pub fn random_sign_keypair() -> ed25519_dalek::Keypair {
+    let sk = &mut [0u8; ed25519_dalek::SECRET_KEY_LENGTH];
+    getrandom::getrandom(sk).unwrap();
+    let sk = ed25519_dalek::SecretKey::from_bytes(sk).unwrap();
+    ed25519_dalek::Keypair {
+        public: (&sk).into(),
+        secret: sk,
+    }
+}
+
 pub fn sign_keypair_from_file(path: impl AsRef<Path>) -> Result<ed25519_dalek::Keypair> {
     let key = std::fs::read(path.as_ref())?;
     match ed25519_dalek::Keypair::from_bytes(&key) {
