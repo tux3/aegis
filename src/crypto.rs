@@ -82,8 +82,20 @@ pub struct RootKeys {
 
 impl RootKeys {
     #[cfg(feature = "ffi")]
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         unreachable!() // UniFFI wants a default constructor...
+    }
+
+    #[cfg(feature = "ffi")]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, crate::ffi::FfiError> {
+        Ok(bincode::deserialize(bytes)
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize: {}", e))?)
+    }
+
+    #[cfg(feature = "ffi")]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        bincode::serialize(self).unwrap()
     }
 
     pub fn derive(password: &str) -> RootKeys {

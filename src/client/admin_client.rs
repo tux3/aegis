@@ -21,7 +21,7 @@ impl AdminClient {
         })
     }
 
-    pub(super) async fn do_request<R: DeserializeOwned>(
+    pub(crate) async fn do_request<R: DeserializeOwned>(
         &mut self,
         route: &str,
         arg: impl Serialize,

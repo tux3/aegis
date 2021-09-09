@@ -1,14 +1,3 @@
-#[cfg(feature = "ffi")]
-use crate::crypto::RootKeys;
-
-#[cfg(feature = "ffi")]
-uniffi_macros::include_scaffolding!("client");
-
-#[cfg(feature = "ffi")]
-mod sync_admin_client;
-#[cfg(feature = "ffi")]
-use sync_admin_client::SyncAdminClient;
-
 mod api_client;
 pub use api_client::*;
 
