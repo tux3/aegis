@@ -4,26 +4,30 @@ use crate::crypto::{randomized_signature, RootKeys};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sodiumoxide::crypto::sign;
 
 pub struct AdminClient {
     client: RestClient,
-    keys: RootKeys,
+    key: sign::SecretKey,
 }
 
 impl AdminClient {
-    pub async fn new(config: &ClientConfig, keys: RootKeys) -> Result<Self> {
+    pub async fn new(config: &ClientConfig, keys: &RootKeys) -> Result<Self> {
         let client = RestClient::new_client(config).await?;
-        Ok(AdminClient { client, keys })
+        Ok(AdminClient {
+            client,
+            key: keys.sig.clone(),
+        })
     }
 
-    async fn do_request<R: DeserializeOwned>(
+    pub(super) async fn do_request<R: DeserializeOwned>(
         &mut self,
         route: &str,
         arg: impl Serialize,
     ) -> Result<R> {
         let route = format!("/admin/{}", route);
         let payload = bincode::serialize(&arg)?;
-        let signature = randomized_signature(&self.keys.sig, route.as_bytes(), &payload);
+        let signature = randomized_signature(&self.key, route.as_bytes(), &payload);
         let reply = self.client.request(&route, &signature, payload).await?;
         Ok(bincode::deserialize(&reply)?)
     }
@@ -46,5 +50,17 @@ impl AdminClient {
 
     pub async fn delete_registered(&mut self, name: String) -> Result<()> {
         self.do_request("delete_registered_device", name).await
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::client::AdminClient;
+    use std::marker::PhantomData;
+
+    #[test]
+    fn admin_client_is_send_sync() {
+        struct Test<T: Send + Sync>(PhantomData<T>);
+        let _ = Test::<AdminClient>(Default::default());
     }
 }

@@ -1,0 +1,20 @@
+interface RootKeys {
+    [Name=derive]
+    constructor([ByRef] string password);
+    boolean matches_serializes_pubkey([ByRef] string pubkey);
+};
+
+dictionary ClientConfig {
+    string server_addr;
+    boolean use_tls;
+    boolean use_rest;
+};
+
+interface SyncAdminClient {
+    [Name=ffi_new]
+    constructor([ByRef] ClientConfig config, [ByRef] RootKeys keys);
+};
+
+namespace client {
+
+};
