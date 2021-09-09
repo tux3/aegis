@@ -3,7 +3,6 @@ use anyhow::{bail, Result};
 use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::Client;
-use sodiumoxide::base64;
 
 pub struct RestClient {
     base_url: String,
@@ -32,7 +31,7 @@ impl ApiClient for RestClient {
         signature: &[u8],
         payload: Vec<u8>,
     ) -> Result<Bytes> {
-        let signature = base64::encode(signature, base64::Variant::UrlSafeNoPadding);
+        let signature = base64::encode_config(signature, base64::URL_SAFE_NO_PAD);
 
         let url = format!("{}{}", &self.base_url, handler);
         let reply = self

@@ -4,11 +4,10 @@ use crate::crypto::{randomized_signature, RootKeys};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sodiumoxide::crypto::sign;
 
 pub struct AdminClient {
     client: RestClient,
-    key: sign::SecretKey,
+    key: ed25519_dalek::Keypair,
 }
 
 impl AdminClient {
@@ -16,7 +15,9 @@ impl AdminClient {
         let client = RestClient::new_client(config).await?;
         Ok(AdminClient {
             client,
-            key: keys.sig.clone(),
+            // No Clone, because let's frustrate people until they decide to use libsodium instead :(
+            // Yes, we make a copy of a key. Hope no one dumps my ram before both copies get zeroed...
+            key: ed25519_dalek::Keypair::from_bytes(&keys.sig.to_bytes()).unwrap(),
         })
     }
 

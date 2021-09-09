@@ -4,19 +4,17 @@ use crate::crypto::randomized_signature;
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sodiumoxide::base64;
-use sodiumoxide::crypto::sign;
 
 pub struct DeviceClient {
     client: Box<dyn ApiClient>,
     api_base: String,
-    key: sign::SecretKey,
+    key: ed25519_dalek::Keypair,
 }
 
 impl DeviceClient {
-    pub async fn new(config: &ClientConfig, key: sign::SecretKey) -> Result<Self> {
+    pub async fn new(config: &ClientConfig, key: ed25519_dalek::Keypair) -> Result<Self> {
         let api_base = if config.use_rest {
-            let dev_pk = base64::encode(key.public_key(), base64::Variant::UrlSafeNoPadding);
+            let dev_pk = base64::encode_config(&key.public, base64::URL_SAFE_NO_PAD);
             format!("/device/{}/", dev_pk)
         } else {
             String::new()

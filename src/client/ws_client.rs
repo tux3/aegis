@@ -4,8 +4,6 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::stream::{SplitSink, SplitStream, StreamExt};
 use futures::SinkExt;
-use sodiumoxide::base64;
-use sodiumoxide::crypto::sign;
 use tokio::net::TcpStream;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
@@ -19,8 +17,11 @@ pub struct WsClient {
 
 impl WsClient {
     // Websockets are only compatible with device handlers
-    pub async fn new_device_client(config: &ClientConfig, key: &sign::SecretKey) -> Result<Self> {
-        let pk = base64::encode(key.public_key(), base64::Variant::UrlSafeNoPadding);
+    pub async fn new_device_client(
+        config: &ClientConfig,
+        key: &ed25519_dalek::Keypair,
+    ) -> Result<Self> {
+        let pk = base64::encode_config(&key.public, base64::URL_SAFE_NO_PAD);
         let proto = if config.use_tls { "wss://" } else { "ws://" };
         let ws_url = format!("{}{}/ws/{}", proto, &config.server_addr, pk);
         let (ws_stream, _) = connect_async(ws_url).await?;
@@ -40,7 +41,7 @@ impl ApiClient for WsClient {
         signature: &[u8],
         payload: Vec<u8>,
     ) -> Result<Bytes> {
-        let signature = base64::encode(signature, base64::Variant::UrlSafeNoPadding).into_bytes();
+        let signature = base64::encode_config(signature, base64::URL_SAFE_NO_PAD).into_bytes();
         let mut msg = signature.to_vec();
         msg.extend_from_slice(format!(" {} ", handler).as_bytes());
         msg.extend_from_slice(&payload);
