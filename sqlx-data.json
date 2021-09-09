@@ -1,7 +1,7 @@
 {
   "db": "PostgreSQL",
-  "05ceb1edd25aee9de8fb37bf9f8db34171bd6bdc726dc47248f5b45624cb7d2d": {
-    "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device LIMIT $1 OFFSET $2",
+  "076d3b2642c64feb275d874e5a25e7b556e2368ad07c2ba9595c73ac28122568": {
+    "query": "SELECT id, created_at, name, pubkey, pending FROM device LIMIT $1 OFFSET $2",
     "describe": {
       "columns": [
         {
@@ -21,8 +21,8 @@
         },
         {
           "ordinal": 3,
-          "name": "pubkey: _",
-          "type_info": "Bytea"
+          "name": "pubkey",
+          "type_info": "Text"
         },
         {
           "ordinal": 4,
@@ -35,6 +35,48 @@
           "Int8",
           "Int8"
         ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "13bcf77e7f30dec43dd37532315486b7fe1378e675c14c67af28873eb7fc26f4": {
+    "query": "SELECT id, created_at, name, pubkey, pending FROM device",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
       },
       "nullable": [
         false,
@@ -59,7 +101,7 @@
         "Left": [
           "Timestamp",
           "Text",
-          "Bytea",
+          "Text",
           "Bool"
         ]
       },
@@ -102,7 +144,7 @@
         {
           "ordinal": 3,
           "name": "pubkey",
-          "type_info": "Bytea"
+          "type_info": "Text"
         },
         {
           "ordinal": 4,
@@ -112,50 +154,6 @@
       ],
       "parameters": {
         "Left": []
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
-    }
-  },
-  "8e84d6dd4d0f3b70871d0da0862ae47ebd43321e7d418554a25b10513a500b6c": {
-    "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device WHERE id = $1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 1,
-          "name": "created_at",
-          "type_info": "Timestamp"
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "pubkey: _",
-          "type_info": "Bytea"
-        },
-        {
-          "ordinal": 4,
-          "name": "pending",
-          "type_info": "Bool"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
       },
       "nullable": [
         false,
@@ -196,7 +194,7 @@
       ],
       "parameters": {
         "Left": [
-          "Bytea"
+          "Text"
         ]
       },
       "nullable": [
@@ -204,8 +202,8 @@
       ]
     }
   },
-  "bc66c506dafbcb190f3a8a5a4b5ea30eba7e9c61fbedf4ac37c7d1928b281ef8": {
-    "query": "SELECT id, created_at, name, pubkey AS \"pubkey: _\", pending FROM device",
+  "c144ca57ce3498c6f4f40b22f9e18f80c559e2b7923e68acea288039e33b4f79": {
+    "query": "SELECT id, created_at, name, pubkey, pending FROM device WHERE id = $1",
     "describe": {
       "columns": [
         {
@@ -225,8 +223,8 @@
         },
         {
           "ordinal": 3,
-          "name": "pubkey: _",
-          "type_info": "Bytea"
+          "name": "pubkey",
+          "type_info": "Text"
         },
         {
           "ordinal": 4,
@@ -235,7 +233,9 @@
         }
       ],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Int4"
+        ]
       },
       "nullable": [
         false,
@@ -254,7 +254,7 @@
         "Left": [
           "Timestamp",
           "Text",
-          "Bytea",
+          "Text",
           "Bool",
           "Int4"
         ]
@@ -284,7 +284,7 @@
         {
           "ordinal": 3,
           "name": "pubkey",
-          "type_info": "Bytea"
+          "type_info": "Text"
         },
         {
           "ordinal": 4,

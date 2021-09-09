@@ -1,51 +1,8 @@
 use anyhow::{bail, Result};
-use chrono::NaiveDateTime;
-use ed25519_dalek::PublicKey;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use futures::future::BoxFuture;
 use ormx::{Insert, Table};
-use sqlx::database::HasArguments;
-use sqlx::decode::Decode;
-use sqlx::encode::{Encode, IsNull};
-use sqlx::error::BoxDynError;
-use sqlx::postgres::{PgTypeInfo, PgValueRef};
-use sqlx::{PgConnection, Postgres, Type};
-use std::convert::TryFrom;
-
-#[derive(Copy, Clone)]
-pub struct DeviceKey(pub PublicKey);
-
-impl From<PublicKey> for DeviceKey {
-    fn from(k: PublicKey) -> Self {
-        Self(k)
-    }
-}
-impl TryFrom<Vec<u8>> for DeviceKey {
-    type Error = anyhow::Error;
-    fn try_from(k: Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self(PublicKey::from_bytes(&k).map_err(|_| {
-            anyhow::anyhow!("Invalid device pubkey size")
-        })?))
-    }
-}
-impl Type<Postgres> for DeviceKey {
-    fn type_info() -> PgTypeInfo {
-        const BYTEA_OID: u32 = 17;
-        PgTypeInfo::with_oid(BYTEA_OID)
-    }
-}
-impl Encode<'_, Postgres> for DeviceKey {
-    fn encode_by_ref(&self, buf: &mut <Postgres as HasArguments>::ArgumentBuffer) -> IsNull {
-        <&[u8] as Encode<Postgres>>::encode(self.0.as_ref(), buf)
-    }
-}
-impl Decode<'_, Postgres> for DeviceKey {
-    fn decode(value: PgValueRef) -> Result<Self, BoxDynError> {
-        let data = <&[u8] as Decode<Postgres>>::decode(value)?;
-        let key =
-            PublicKey::from_bytes(data).map_err(|_| anyhow::anyhow!("Invalid DeviceKey value"))?;
-        Ok(DeviceKey(key))
-    }
-}
+use sqlx::PgConnection;
 
 #[derive(ormx::Table)]
 #[ormx(table = "device", id = id, insertable)]
@@ -54,15 +11,14 @@ pub struct Device {
     id: i32,
     created_at: NaiveDateTime,
     name: String,
-    #[ormx(custom_type)]
-    pubkey: DeviceKey,
+    pubkey: String,
     pending: bool,
 }
 
 pub struct PendingDevice {
     pub created_at: NaiveDateTime,
     pub name: String,
-    pub pubkey: DeviceKey,
+    pub pubkey: String,
 }
 
 impl Insert for PendingDevice {
@@ -72,7 +28,7 @@ impl Insert for PendingDevice {
         Device::insert(
             db,
             InsertDevice {
-                created_at: self.created_at,
+                created_at: self.created_at.into(),
                 name: self.name,
                 pubkey: self.pubkey,
                 pending: true,
@@ -84,9 +40,9 @@ impl Insert for PendingDevice {
 impl From<PendingDevice> for aegislib::command::admin::PendingDevice {
     fn from(dev: PendingDevice) -> Self {
         Self {
-            created_at: dev.created_at,
+            created_at: DateTime::<Utc>::from_utc(dev.created_at, Utc).into(),
             name: dev.name,
-            pubkey: dev.pubkey.0,
+            pubkey: dev.pubkey,
         }
     }
 }
@@ -94,9 +50,9 @@ impl From<PendingDevice> for aegislib::command::admin::PendingDevice {
 impl From<Device> for aegislib::command::admin::RegisteredDevice {
     fn from(dev: Device) -> Self {
         Self {
-            created_at: dev.created_at,
+            created_at: DateTime::<Utc>::from_utc(dev.created_at, Utc).into(),
             name: dev.name,
-            pubkey: dev.pubkey.0,
+            pubkey: dev.pubkey,
         }
     }
 }
@@ -184,9 +140,10 @@ pub async fn is_key_registered(
     conn: &mut PgConnection,
     key: &ed25519_dalek::PublicKey,
 ) -> Result<bool> {
+    let key = base64::encode_config(key.as_ref(), base64::URL_SAFE_NO_PAD);
     let record = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM device WHERE pending = FALSE AND pubkey = $1",
-        key.as_ref()
+        key
     )
     .fetch_one(conn)
     .await?;

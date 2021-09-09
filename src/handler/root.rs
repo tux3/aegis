@@ -75,10 +75,11 @@ pub async fn register(
         bail!("Too many pending devices");
     }
 
+    let pubkey_str = base64::encode_config(&device_pk, base64::URL_SAFE_NO_PAD);
     PendingDevice {
         created_at: Utc::now().naive_utc(),
         name,
-        pubkey: device_pk.into(),
+        pubkey: pubkey_str,
     }
     .insert(&mut *conn)
     .await?;
