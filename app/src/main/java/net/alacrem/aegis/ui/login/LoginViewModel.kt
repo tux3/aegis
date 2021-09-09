@@ -5,10 +5,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
 import net.alacrem.aegis.R
+import net.alacrem.aegis.ROOT_SIG_PUBKEY
 import uniffi.client.RootKeys
-
-// TODO: This is the test/dev key! Replace by a prod key later...
-const val ROOT_SIG_PUBKEY = "fdq2MVHvsmzSRWy9tR9FHj-o1Ws7buZ5RHDLm5ljFfU"
 
 class LoginViewModel : ViewModel() {
     private val _loginResult = MutableLiveData<LoginResult>()

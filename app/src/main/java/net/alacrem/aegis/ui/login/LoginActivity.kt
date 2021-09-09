@@ -4,27 +4,46 @@ import android.app.Activity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
-import android.widget.EditText
 import android.widget.Toast
+import net.alacrem.aegis.ROOT_KEYS_FILE
+import net.alacrem.aegis.TAG
 import net.alacrem.aegis.databinding.ActivityLoginBinding
-
-import net.alacrem.aegis.R
+import uniffi.client.RootKeys
+import java.io.File
+import java.io.FileNotFoundException
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var loginViewModel: LoginViewModel
     private lateinit var binding: ActivityLoginBinding
 
+    private fun loadRootKeys(): RootKeys {
+        val data = File(filesDir, ROOT_KEYS_FILE).readBytes()
+        return RootKeys.fromBytes(data.toUByteArray().asList())
+    }
+
+    private fun saveRootKeys(keys: RootKeys) {
+        val data = keys.toBytes().toUByteArray().toByteArray()
+        File(filesDir, ROOT_KEYS_FILE).writeBytes(data)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // TODO: Check if we have RootKeys in secure storage
+        try {
+            val keys = loadRootKeys()
+            Log.i(TAG, "Loaded root keys from file")
+
+            setResult(Activity.RESULT_OK)
+            finish()
+        } catch (e: FileNotFoundException) {
+            // Alright, no problem
+        }
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -43,9 +62,9 @@ class LoginActivity : AppCompatActivity() {
                 showLoginFailed(loginResult.error)
             }
             if (loginResult.success != null) {
+                val keys = loginResult.success
+                saveRootKeys(keys)
                 setResult(Activity.RESULT_OK)
-                // TODO: Store RootKeys in secure storage
-                // TODO: Get RootKeys object from loginResult, move on to main activity
                 finish()
             }
         })
