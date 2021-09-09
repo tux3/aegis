@@ -1,9 +1,8 @@
 use anyhow::{bail, Result};
 use chrono::NaiveDateTime;
+use ed25519_dalek::PublicKey;
 use futures::future::BoxFuture;
 use ormx::{Insert, Table};
-use sodiumoxide::crypto::sign;
-use sodiumoxide::crypto::sign::PublicKey;
 use sqlx::database::HasArguments;
 use sqlx::decode::Decode;
 use sqlx::encode::{Encode, IsNull};
@@ -13,9 +12,9 @@ use sqlx::{PgConnection, Postgres, Type};
 use std::convert::TryFrom;
 
 #[derive(Copy, Clone)]
-pub struct DeviceKey(pub sign::PublicKey);
+pub struct DeviceKey(pub PublicKey);
 
-impl From<sign::PublicKey> for DeviceKey {
+impl From<PublicKey> for DeviceKey {
     fn from(k: PublicKey) -> Self {
         Self(k)
     }
@@ -23,7 +22,7 @@ impl From<sign::PublicKey> for DeviceKey {
 impl TryFrom<Vec<u8>> for DeviceKey {
     type Error = anyhow::Error;
     fn try_from(k: Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self(sign::PublicKey::from_slice(&k).ok_or_else(|| {
+        Ok(Self(PublicKey::from_bytes(&k).map_err(|_| {
             anyhow::anyhow!("Invalid device pubkey size")
         })?))
     }
@@ -42,8 +41,8 @@ impl Encode<'_, Postgres> for DeviceKey {
 impl Decode<'_, Postgres> for DeviceKey {
     fn decode(value: PgValueRef) -> Result<Self, BoxDynError> {
         let data = <&[u8] as Decode<Postgres>>::decode(value)?;
-        let key = sign::PublicKey::from_slice(data)
-            .ok_or_else(|| anyhow::anyhow!("Invalid DeviceKey value"))?;
+        let key =
+            PublicKey::from_bytes(data).map_err(|_| anyhow::anyhow!("Invalid DeviceKey value"))?;
         Ok(DeviceKey(key))
     }
 }
@@ -181,7 +180,10 @@ pub async fn delete_registered(conn: &mut PgConnection, name: &str) -> Result<()
     Ok(())
 }
 
-pub async fn is_key_registered(conn: &mut PgConnection, key: &sign::PublicKey) -> Result<bool> {
+pub async fn is_key_registered(
+    conn: &mut PgConnection,
+    key: &ed25519_dalek::PublicKey,
+) -> Result<bool> {
     let record = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM device WHERE pending = FALSE AND pubkey = $1",
         key.as_ref()

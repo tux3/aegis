@@ -1,7 +1,6 @@
+use ed25519_dalek::PublicKey;
 use serde::de::{Error, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer};
-use sodiumoxide::base64;
-use sodiumoxide::crypto::sign;
 use std::fmt::Formatter;
 use std::path::Path;
 
@@ -15,7 +14,7 @@ pub struct Config {
     #[serde(default = "db_max_conn_default")]
     pub db_max_conn: u32,
     #[serde(deserialize_with = "deserialize_pub_sig_key")]
-    pub root_public_signature_key: sign::PublicKey,
+    pub root_public_signature_key: PublicKey,
 }
 
 impl Config {
@@ -29,13 +28,13 @@ fn db_max_conn_default() -> u32 {
     16
 }
 
-fn deserialize_pub_sig_key<'de, D>(deser: D) -> Result<sign::PublicKey, D::Error>
+fn deserialize_pub_sig_key<'de, D>(deser: D) -> Result<PublicKey, D::Error>
 where
     D: Deserializer<'de>,
 {
     struct StrVisitor {}
     impl<'de> Visitor<'de> for StrVisitor {
-        type Value = sign::PublicKey;
+        type Value = PublicKey;
 
         fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
             write!(formatter, "a base64 urlsafe nopad public signature key")
@@ -45,10 +44,9 @@ where
         where
             E: Error,
         {
-            let bytes = base64::decode(v, base64::Variant::UrlSafeNoPadding)
+            let bytes = base64::decode_config(v, base64::URL_SAFE_NO_PAD)
                 .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
-            sign::PublicKey::from_slice(&bytes)
-                .ok_or_else(|| Error::invalid_length(bytes.len(), &self))
+            PublicKey::from_bytes(&bytes).map_err(|_| Error::invalid_length(bytes.len(), &self))
         }
     }
 

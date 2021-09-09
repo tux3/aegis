@@ -8,11 +8,9 @@ use actix_web::error::ErrorForbidden;
 use actix_web::web::{Path, Payload};
 use actix_web::{get, post, HttpRequest, HttpResponse, Responder};
 use chrono::Utc;
+use ed25519_dalek::PublicKey;
 use futures::StreamExt;
 use ormx::Insert;
-use sodiumoxide::base64;
-use sodiumoxide::base64::Variant::UrlSafeNoPadding;
-use sodiumoxide::crypto::sign::PublicKey;
 use sqlx::PgPool;
 use tracing::debug;
 
@@ -34,8 +32,8 @@ pub async fn websocket(
         .unwrap() // Only None for unit tests
         .to_owned();
     let device_pk = path.into_inner().0;
-    let device_pk = base64::decode(device_pk, UrlSafeNoPadding).ok();
-    let device_pk = match device_pk.and_then(|pk| PublicKey::from_slice(&pk)) {
+    let device_pk = base64::decode_config(device_pk, base64::URL_SAFE_NO_PAD).ok();
+    let device_pk = match device_pk.and_then(|pk| PublicKey::from_bytes(&pk).ok()) {
         Some(pk) => pk,
         None => bail!("Invalid device_id"),
     };
@@ -64,8 +62,8 @@ pub async fn register(
         bail!("Unexpected body");
     }
     let (device_pk, name) = path.into_inner();
-    let device_pk = base64::decode(device_pk, UrlSafeNoPadding).ok();
-    let device_pk = match device_pk.and_then(|pk| PublicKey::from_slice(&pk)) {
+    let device_pk = base64::decode_config(device_pk, base64::URL_SAFE_NO_PAD).ok();
+    let device_pk = match device_pk.and_then(|pk| PublicKey::from_bytes(&pk).ok()) {
         Some(pk) => pk,
         None => bail!("Invalid device_id"),
     };

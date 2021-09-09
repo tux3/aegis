@@ -6,8 +6,6 @@ use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
 use aegislib::crypto::check_signature;
 use futures::future::{ok, Future, Ready};
 use futures::stream::StreamExt;
-use sodiumoxide::base64::{self, Variant::UrlSafeNoPadding};
-use sodiumoxide::crypto::sign;
 use sqlx::PgPool;
 use std::cell::RefCell;
 use std::pin::Pin;
@@ -57,8 +55,8 @@ where
             let device_pk = req
                 .match_info()
                 .get("device_pk")
-                .and_then(|pk| base64::decode(pk, UrlSafeNoPadding).ok())
-                .and_then(|pk| sign::PublicKey::from_slice(&pk));
+                .and_then(|pk| base64::decode_config(pk, base64::URL_SAFE_NO_PAD).ok())
+                .and_then(|pk| ed25519_dalek::PublicKey::from_bytes(&pk).ok());
             let device_pk = match device_pk {
                 Some(device_pk) => device_pk.to_owned(),
                 None => return Err(ErrorBadRequest("Invalid device_pk")),
@@ -81,7 +79,7 @@ where
             let bearer = auth_header
                 .as_bytes()
                 .strip_prefix(b"Bearer ")
-                .and_then(|bearer| base64::decode(bearer, UrlSafeNoPadding).ok());
+                .and_then(|bearer| base64::decode_config(bearer, base64::URL_SAFE_NO_PAD).ok());
             let randomized_signature = match bearer {
                 Some(bearer) => bearer,
                 _ => return Err(ErrorForbidden("Invalid Authorization header")),

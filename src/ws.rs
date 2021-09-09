@@ -7,8 +7,7 @@ use actix_http::ws;
 use actix_web::web::{Bytes, BytesMut};
 use actix_web_actors::ws::WebsocketContext;
 use aegislib::crypto::check_signature;
-use sodiumoxide::base64;
-use sodiumoxide::crypto::sign::PublicKey;
+use ed25519_dalek::PublicKey;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -82,7 +81,7 @@ impl WsConn {
             }
         };
         let msg_id = raw_payload.slice_ref(msg_id);
-        let signature = match base64::decode(&msg_id, base64::Variant::UrlSafeNoPadding) {
+        let signature = match base64::decode_config(&msg_id, base64::URL_SAFE_NO_PAD) {
             Ok(msg_id) => Bytes::from(msg_id),
             Err(_) => {
                 warn!(%remote_addr, "Websocket msg_id is invalid base64");

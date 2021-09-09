@@ -6,7 +6,6 @@ use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
 use aegislib::crypto::check_signature;
 use futures::future::{ok, Future, Ready};
 use futures::stream::StreamExt;
-use sodiumoxide::base64::{self, Variant::UrlSafeNoPadding};
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -63,7 +62,7 @@ where
             let bearer = auth_header
                 .as_bytes()
                 .strip_prefix(b"Bearer ")
-                .and_then(|bearer| base64::decode(bearer, UrlSafeNoPadding).ok());
+                .and_then(|bearer| base64::decode_config(bearer, base64::URL_SAFE_NO_PAD).ok());
             let randomized_signature = match bearer {
                 Some(bearer) => bearer,
                 _ => return Err(ErrorForbidden("Invalid Authorization header")),
