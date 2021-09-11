@@ -1,4 +1,3 @@
-use aegislib::command::admin::SetStatusArg;
 use aegislib::command::device::StatusReply;
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -166,7 +165,10 @@ pub async fn delete_registered(conn: &mut PgConnection, name: &str) -> Result<()
     Ok(())
 }
 
-pub async fn get_dev_id(conn: &mut PgConnection, pubkey: &ed25519_dalek::PublicKey) -> Result<i32> {
+pub async fn get_dev_id_by_pk(
+    conn: &mut PgConnection,
+    pubkey: &ed25519_dalek::PublicKey,
+) -> Result<i32> {
     let pubkey = base64::encode_config(pubkey.as_ref(), base64::URL_SAFE_NO_PAD);
     let id = sqlx::query_scalar!(
         "SELECT id FROM device WHERE pending = FALSE AND pubkey = $1",
@@ -177,18 +179,36 @@ pub async fn get_dev_id(conn: &mut PgConnection, pubkey: &ed25519_dalek::PublicK
     Ok(id)
 }
 
-pub async fn update_status(conn: &mut PgConnection, status: &SetStatusArg) -> Result<Status> {
-    let mut fields = Vec::new();
-    if let Some(val) = status.vt_locked {
+pub async fn get_dev_id_by_name(conn: &mut PgConnection, name: &str) -> Result<i32> {
+    let id = sqlx::query_scalar!(
+        "SELECT id FROM device WHERE pending = FALSE AND name = $1",
+        name
+    )
+    .fetch_one(conn)
+    .await?;
+    Ok(id)
+}
+
+pub async fn update_status(
+    conn: &mut PgConnection,
+    dev_id: i32,
+    vt_locked: Option<bool>,
+    ssh_locked: Option<bool>,
+) -> Result<Status> {
+    let mut fields = vec!["dev_id=dev_id".to_owned()];
+    if let Some(val) = vt_locked {
         fields.push(format!("vt_locked = {}", val));
     }
-    if let Some(val) = status.ssh_locked {
+    if let Some(val) = ssh_locked {
         fields.push(format!("ssh_locked = {}", val));
     }
     let fields = fields.join(",");
-    let query = &format!("UPDATE device SET {} WHERE dev_id = $1 RETURNING *", fields);
+    let query = &format!(
+        "UPDATE device_status SET {} WHERE dev_id = $1 RETURNING *",
+        fields
+    );
     let result = sqlx::query_as::<_, Status>(query)
-        .bind(status.dev_id)
+        .bind(dev_id)
         .fetch_one(conn)
         .await?;
     Ok(result)

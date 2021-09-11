@@ -49,5 +49,8 @@ pub async fn delete_registered_device(db: &mut PgConnection, name: String) -> Re
 
 #[admin_handler("/set_status")]
 pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<StatusReply> {
-    Ok(update_status(db, &arg).await?.into())
+    let dev_id = get_dev_id_by_name(db, &arg.dev_name).await?;
+    Ok(update_status(db, dev_id, arg.vt_locked, arg.ssh_locked)
+        .await?
+        .into())
 }

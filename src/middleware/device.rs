@@ -1,5 +1,5 @@
 use crate::handler::device::DeviceId;
-use crate::model::device::get_dev_id;
+use crate::model::device::get_dev_id_by_pk;
 use actix_service::{Service, Transform};
 use actix_web::error::{ErrorBadRequest, ErrorForbidden, ErrorInternalServerError};
 use actix_web::web::BytesMut;
@@ -66,7 +66,7 @@ where
                 .acquire()
                 .await
                 .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
-            let dev_id = match get_dev_id(&mut conn, &device_pk).await {
+            let dev_id = match get_dev_id_by_pk(&mut conn, &device_pk).await {
                 Err(e) => return Err(ErrorForbidden(format!("Device not found: {}", e))),
                 Ok(id) => id,
             };
