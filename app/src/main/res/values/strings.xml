@@ -4,9 +4,20 @@
     <string name="prompt_password">Admin password</string>
     <string name="action_sign_in">Confirm</string>
     <string name="login_failed">"Login failed"</string>
+
+    <!-- Main activity -->
     <string name="title_activity_main">MainActivity</string>
     <string name="tab_registered">Devices</string>
     <string name="tab_pending">Pending</string>
     <string name="label_registered_dev">Registered devices:</string>
     <string name="label_pending_dev">Devices pending registration:</string>
+
+    <!-- Device Settings -->
+    <string name="title_activity_device_settings">Device Settings</string>
+    <string name="lock_vt">Lock VT</string>
+    <string name="lock_ssh">Lock SSH</string>
+    <string name="lock_all">Lock All</string>
+    <string name="unlock_all">Unlock All</string>
+    <string name="lock_section">Lock status</string>
+    <string name="device_name_placeholder">Device name</string>
 </resources>

@@ -1,5 +1,6 @@
 package net.alacrem.aegis.ui.main
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,6 +20,7 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.alacrem.aegis.ui.DeviceSettingsActivity
 
 
 /**
@@ -67,8 +69,10 @@ class DeviceListFragment : Fragment() {
     }
 
     private fun onDeviceClicked(name: String) {
-        // TODO: Load device activity
-        Toast.makeText(context, name, Toast.LENGTH_SHORT).show()
+        val intent = Intent(context, DeviceSettingsActivity::class.java)
+        intent.putExtra("keys", keys.toBytes().toUByteArray().toByteArray())
+        intent.putExtra("device_name", name)
+        startActivity(intent)
     }
 
     private fun onPendingClicked(name: String) {

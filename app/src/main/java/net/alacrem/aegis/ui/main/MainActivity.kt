@@ -42,8 +42,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             keys = maybeKeys
         }
-        val config = ClientConfig(SERVER_ADDR, SERVER_USE_TLS, false)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
