@@ -16,7 +16,10 @@ import net.alacrem.aegis.databinding.ActivityLoginBinding
 import uniffi.client.RootKeys
 import java.io.File
 import java.io.FileNotFoundException
+import android.content.Intent
+import net.alacrem.aegis.ui.main.MainActivity
 
+@ExperimentalUnsignedTypes
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var loginViewModel: LoginViewModel
@@ -38,9 +41,7 @@ class LoginActivity : AppCompatActivity() {
         try {
             val keys = loadRootKeys()
             Log.i(TAG, "Loaded root keys from file")
-
-            setResult(Activity.RESULT_OK)
-            finish()
+            switchToMain(keys)
         } catch (e: FileNotFoundException) {
             // Alright, no problem
         }
@@ -64,8 +65,7 @@ class LoginActivity : AppCompatActivity() {
             if (loginResult.success != null) {
                 val keys = loginResult.success
                 saveRootKeys(keys)
-                setResult(Activity.RESULT_OK)
-                finish()
+                switchToMain(keys)
             }
         })
 
@@ -89,5 +89,14 @@ class LoginActivity : AppCompatActivity() {
 
     private fun showLoginFailed(@StringRes errorString: Int) {
         Toast.makeText(applicationContext, errorString, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun switchToMain(keys: RootKeys) {
+        setResult(Activity.RESULT_OK)
+        val mainIntent = Intent(this, MainActivity::class.java)
+        mainIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_TASK_ON_HOME
+        mainIntent.putExtra("keys", keys.toBytes().toUByteArray().toByteArray())
+        startActivity(mainIntent)
+        finish()
     }
 }

@@ -4,4 +4,7 @@
     <string name="prompt_password">Admin password</string>
     <string name="action_sign_in">Confirm</string>
     <string name="login_failed">"Login failed"</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="tab_text_1">Tab 1</string>
+    <string name="tab_text_2">Tab 2</string>
 </resources>
