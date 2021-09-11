@@ -1,4 +1,4 @@
-use crate::handler::device::{device_handler_iter, DeviceHandlerFn};
+use crate::handler::device::{device_handler_iter, DeviceHandlerFn, DeviceId};
 use actix::{
     Actor, ActorContext, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
     WrapFuture,
@@ -37,15 +37,22 @@ pub struct WsResponse {
 pub struct WsConn {
     db: PgPool,
     device_pk: PublicKey,
+    device_id: DeviceId,
     last_heartbeat: Instant,
     remote_addr_untrusted: String,
 }
 
 impl WsConn {
-    pub fn new(db: PgPool, device_pk: PublicKey, remote_addr_untrusted: String) -> WsConn {
+    pub fn new(
+        db: PgPool,
+        device_pk: PublicKey,
+        device_id: DeviceId,
+        remote_addr_untrusted: String,
+    ) -> WsConn {
         WsConn {
             db,
             device_pk,
+            device_id,
             last_heartbeat: Instant::now(),
             remote_addr_untrusted,
         }
@@ -125,8 +132,9 @@ impl WsConn {
 
         let self_addr = ctx.address().recipient();
         let db = self.db.clone();
+        let dev_id = self.device_id;
         let fut = async move {
-            let reply_bytes = match handler(db, data).await {
+            let reply_bytes = match handler(db, dev_id, data).await {
                 Ok(reply) => WsResponse {
                     is_ok: true,
                     msg_id,

@@ -1,4 +1,5 @@
-use crate::model::device;
+use crate::handler::device::DeviceId;
+use crate::model::device::get_dev_id;
 use actix_service::{Service, Transform};
 use actix_web::error::{ErrorBadRequest, ErrorForbidden, ErrorInternalServerError};
 use actix_web::web::BytesMut;
@@ -65,12 +66,11 @@ where
                 .acquire()
                 .await
                 .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
-            match device::is_key_registered(&mut conn, &device_pk).await {
-                Err(e) => return Err(ErrorInternalServerError(format!("Database error: {}", e))),
-                Ok(false) => return Err(ErrorForbidden("Device not registered")),
-                Ok(true) => {}
-            }
-            drop(conn);
+            let dev_id = match get_dev_id(&mut conn, &device_pk).await {
+                Err(e) => return Err(ErrorForbidden(format!("Device not found: {}", e))),
+                Ok(id) => id,
+            };
+            req.extensions_mut().insert(DeviceId(dev_id)).unwrap();
 
             let auth_header = match req.headers().get("Authorization") {
                 Some(auth) => auth,

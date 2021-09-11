@@ -130,7 +130,8 @@ pub async fn confirm_pending(conn: &mut PgConnection, name: &str) -> Result<()> 
             dev_id: result.id,
             updated_at: Utc::now().naive_utc(),
         },
-    );
+    )
+    .await?;
     tx.commit().await?;
     Ok(())
 }
@@ -165,18 +166,15 @@ pub async fn delete_registered(conn: &mut PgConnection, name: &str) -> Result<()
     Ok(())
 }
 
-pub async fn is_key_registered(
-    conn: &mut PgConnection,
-    key: &ed25519_dalek::PublicKey,
-) -> Result<bool> {
-    let key = base64::encode_config(key.as_ref(), base64::URL_SAFE_NO_PAD);
-    let record = sqlx::query_scalar!(
-        "SELECT COUNT(*) FROM device WHERE pending = FALSE AND pubkey = $1",
-        key
+pub async fn get_dev_id(conn: &mut PgConnection, pubkey: &ed25519_dalek::PublicKey) -> Result<i32> {
+    let pubkey = base64::encode_config(pubkey.as_ref(), base64::URL_SAFE_NO_PAD);
+    let id = sqlx::query_scalar!(
+        "SELECT id FROM device WHERE pending = FALSE AND pubkey = $1",
+        pubkey
     )
     .fetch_one(conn)
     .await?;
-    Ok(matches!(record, Some(1)))
+    Ok(id)
 }
 
 pub async fn update_status(conn: &mut PgConnection, status: &SetStatusArg) -> Result<Status> {
@@ -193,5 +191,16 @@ pub async fn update_status(conn: &mut PgConnection, status: &SetStatusArg) -> Re
         .bind(status.dev_id)
         .fetch_one(conn)
         .await?;
+    Ok(result)
+}
+
+pub async fn get_status(conn: &mut PgConnection, dev_id: i32) -> Result<Status> {
+    let result = sqlx::query_as!(
+        Status,
+        "SELECT * FROM device_status WHERE dev_id = $1",
+        dev_id
+    )
+    .fetch_one(conn)
+    .await?;
     Ok(result)
 }

@@ -1,3 +1,4 @@
+use crate::handler::device::DeviceId;
 use actix_web::error::Error;
 use actix_web::web::Bytes;
 use actix_web::HttpRequest;
@@ -7,7 +8,7 @@ use std::pin::Pin;
 
 type PinBoxFut<T> = Pin<Box<dyn Future<Output = T>>>;
 pub type DeviceHttpHandlerFn = fn(HttpRequest, Bytes) -> PinBoxFut<Result<Bytes, Error>>;
-pub type DeviceHandlerFn = fn(PgPool, Bytes) -> PinBoxFut<Result<Bytes, Error>>;
+pub type DeviceHandlerFn = fn(PgPool, DeviceId, Bytes) -> PinBoxFut<Result<Bytes, Error>>;
 
 pub struct DeviceHandler {
     pub path: &'static str,

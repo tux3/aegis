@@ -1,6 +1,7 @@
 //! Root handlers are unauthenticated. They are reachable only by REST, not by websocket.
 
 use crate::error::{bail, Error};
+use crate::handler::device::DeviceId;
 use crate::model::device;
 use crate::model::device::{count_pending, PendingDevice};
 use crate::ws::WsConn;
@@ -39,11 +40,12 @@ pub async fn websocket(
     };
 
     let conn = &mut db.acquire().await?;
-    if !device::is_key_registered(conn, &device_pk).await? {
-        return Err(ErrorForbidden("Device not registered").into());
-    }
+    let dev_id = match device::get_dev_id(conn, &device_pk).await {
+        Err(e) => return Err(ErrorForbidden(format!("Device not found: {}", e)).into()),
+        Ok(id) => id,
+    };
 
-    let ws = WsConn::new(db, device_pk, remote_addr.clone());
+    let ws = WsConn::new(db, device_pk, DeviceId(dev_id), remote_addr.clone());
 
     // Upgrade to a websocket
     let resp = actix_web_actors::ws::start(ws, &req, stream)?;
