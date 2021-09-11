@@ -12,3 +12,6 @@ pub use list_registered::list_registered;
 
 mod delete_registered;
 pub use delete_registered::delete_registered;
+
+mod set_status;
+pub use set_status::set_status;

@@ -60,6 +60,12 @@ async fn main() -> Result<()> {
                 (about: "Delete a valid registered device")
                 (@arg name: +required "The device's name")
             )
+            (@subcommand "set-status" =>
+                (about: "Update status for a registered device")
+                (@arg name: +required "The device's name")
+                (@arg "vt-lock": --("vt-lock") +takes_value "Lock the system onto a blank TTY")
+                (@arg "ssh-lock": --("ssh-lock") +takes_value "Disable new SSH logins")
+            )
         )
         (@subcommand "device" =>
             (about: "Send requests as if running on a device")
@@ -111,6 +117,7 @@ async fn main() -> Result<()> {
                 ("delete-device", sub_args) => {
                     cmd::admin::delete_registered(config, client, sub_args).await
                 }
+                ("set-status", sub_args) => cmd::admin::set_status(config, client, sub_args).await,
                 _ => unreachable!(),
             }
         }
