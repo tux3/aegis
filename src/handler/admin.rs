@@ -6,7 +6,8 @@ pub use handler_inventory::admin_handler_iter;
 use crate::model::device::*;
 use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
-use aegislib::command::admin::{PendingDevice, RegisteredDevice};
+use aegislib::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
+use aegislib::command::device::StatusReply;
 use anyhow::Result;
 use sqlx::PgConnection;
 
@@ -44,4 +45,9 @@ pub async fn list_registered_devices(db: &mut PgConnection) -> Result<Vec<Regist
 pub async fn delete_registered_device(db: &mut PgConnection, name: String) -> Result<()> {
     delete_registered(db, &name).await?;
     Ok(())
+}
+
+#[admin_handler("/set_status")]
+pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<StatusReply> {
+    Ok(update_status(db, &arg).await?.into())
 }

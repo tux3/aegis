@@ -1,8 +1,10 @@
+use aegislib::command::admin::SetStatusArg;
+use aegislib::command::device::StatusReply;
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use futures::future::BoxFuture;
 use ormx::{Insert, Table};
-use sqlx::PgConnection;
+use sqlx::{Connection, PgConnection};
 
 #[derive(ormx::Table)]
 #[ormx(table = "device", id = id, insertable)]
@@ -28,7 +30,7 @@ impl Insert for PendingDevice {
         Device::insert(
             db,
             InsertDevice {
-                created_at: self.created_at.into(),
+                created_at: self.created_at,
                 name: self.name,
                 pubkey: self.pubkey,
                 pending: true,
@@ -50,9 +52,30 @@ impl From<PendingDevice> for aegislib::command::admin::PendingDevice {
 impl From<Device> for aegislib::command::admin::RegisteredDevice {
     fn from(dev: Device) -> Self {
         Self {
+            id: dev.id,
             created_at: DateTime::<Utc>::from_utc(dev.created_at, Utc).into(),
             name: dev.name,
             pubkey: dev.pubkey,
+        }
+    }
+}
+
+#[derive(ormx::Table, sqlx::FromRow)]
+#[ormx(table = "device_status", id = dev_id, insertable)]
+pub struct Status {
+    dev_id: i32,
+    updated_at: NaiveDateTime,
+    #[ormx(default)]
+    vt_locked: bool,
+    #[ormx(default)]
+    ssh_locked: bool,
+}
+
+impl From<Status> for StatusReply {
+    fn from(s: Status) -> Self {
+        Self {
+            vt_locked: s.vt_locked,
+            ssh_locked: s.ssh_locked,
         }
     }
 }
@@ -66,7 +89,7 @@ pub async fn list_pending(conn: &mut PgConnection) -> Result<Vec<PendingDevice>>
         .map(|r| PendingDevice {
             created_at: r.created_at,
             name: r.name,
-            pubkey: r.pubkey.try_into().unwrap(),
+            pubkey: r.pubkey,
         })
         .collect())
 }
@@ -93,16 +116,22 @@ pub async fn delete_pending(conn: &mut PgConnection, name: &str) -> Result<()> {
 }
 
 pub async fn confirm_pending(conn: &mut PgConnection, name: &str) -> Result<()> {
+    let mut tx = conn.begin().await?;
     let result = sqlx::query!(
-        "UPDATE device SET pending = FALSE WHERE name = $1 AND pending = TRUE",
+        "UPDATE device SET pending = FALSE WHERE name = $1 AND pending = TRUE
+         RETURNING id",
         name
     )
-    .execute(conn)
+    .fetch_one(&mut tx)
     .await?;
-    if result.rows_affected() != 1 {
-        debug_assert_eq!(result.rows_affected(), 0); // name is UNIQUE
-        bail!("Pending device '{}' not found", name);
-    }
+    Status::insert(
+        &mut tx,
+        InsertStatus {
+            dev_id: result.id,
+            updated_at: Utc::now().naive_utc(),
+        },
+    );
+    tx.commit().await?;
     Ok(())
 }
 
@@ -116,7 +145,7 @@ pub async fn list_registered(conn: &mut PgConnection) -> Result<Vec<Device>> {
             id: r.id,
             created_at: r.created_at,
             name: r.name,
-            pubkey: r.pubkey.try_into().unwrap(),
+            pubkey: r.pubkey,
             pending: r.pending,
         })
         .collect())
@@ -148,4 +177,21 @@ pub async fn is_key_registered(
     .fetch_one(conn)
     .await?;
     Ok(matches!(record, Some(1)))
+}
+
+pub async fn update_status(conn: &mut PgConnection, status: &SetStatusArg) -> Result<Status> {
+    let mut fields = Vec::new();
+    if let Some(val) = status.vt_locked {
+        fields.push(format!("vt_locked = {}", val));
+    }
+    if let Some(val) = status.ssh_locked {
+        fields.push(format!("ssh_locked = {}", val));
+    }
+    let fields = fields.join(",");
+    let query = &format!("UPDATE device SET {} WHERE dev_id = $1 RETURNING *", fields);
+    let result = sqlx::query_as::<_, Status>(query)
+        .bind(status.dev_id)
+        .fetch_one(conn)
+        .await?;
+    Ok(result)
 }
