@@ -4,6 +4,12 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        release {
+            storeFile file('/opt/keystore.jks')
+            keyAlias 'key0'
+        }
+    }
     compileSdk 30
 
     defaultConfig {
@@ -14,12 +20,14 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        signingConfig signingConfigs.release
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
