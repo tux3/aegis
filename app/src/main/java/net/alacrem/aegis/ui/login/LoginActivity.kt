@@ -51,7 +51,7 @@ class LoginActivity : AppCompatActivity() {
 
         val password = binding.password
         val login = binding.login
-        val loading = binding.loading
+        val loading = binding.loadingLogin
 
         loginViewModel = ViewModelProvider(this).get(LoginViewModel::class.java)
 

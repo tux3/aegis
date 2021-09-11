@@ -5,8 +5,11 @@ import android.os.Bundle
 import com.google.android.material.tabs.TabLayout
 import androidx.viewpager.widget.ViewPager
 import androidx.appcompat.app.AppCompatActivity
+import net.alacrem.aegis.SERVER_ADDR
+import net.alacrem.aegis.SERVER_USE_TLS
 import net.alacrem.aegis.databinding.ActivityMainBinding
 import net.alacrem.aegis.ui.login.LoginActivity
+import uniffi.client.ClientConfig
 import uniffi.client.RootKeys
 
 @ExperimentalUnsignedTypes
@@ -39,11 +42,12 @@ class MainActivity : AppCompatActivity() {
         } else {
             keys = maybeKeys
         }
+        val config = ClientConfig(SERVER_ADDR, SERVER_USE_TLS, false)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val sectionsPagerAdapter = SectionsPagerAdapter(this, supportFragmentManager)
+        val sectionsPagerAdapter = SectionsPagerAdapter(this, keys, supportFragmentManager)
         val viewPager: ViewPager = binding.viewPager
         viewPager.adapter = sectionsPagerAdapter
         val tabs: TabLayout = binding.tabs

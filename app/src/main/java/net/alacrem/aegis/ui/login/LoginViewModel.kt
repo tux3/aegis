@@ -8,6 +8,7 @@ import net.alacrem.aegis.R
 import net.alacrem.aegis.ROOT_SIG_PUBKEY
 import uniffi.client.RootKeys
 
+@ExperimentalUnsignedTypes
 class LoginViewModel : ViewModel() {
     private val _loginResult = MutableLiveData<LoginResult>()
     val loginResult: LiveData<LoginResult> = _loginResult

@@ -5,6 +5,8 @@
     <string name="action_sign_in">Confirm</string>
     <string name="login_failed">"Login failed"</string>
     <string name="title_activity_main">MainActivity</string>
-    <string name="tab_text_1">Tab 1</string>
-    <string name="tab_text_2">Tab 2</string>
+    <string name="tab_registered">Devices</string>
+    <string name="tab_pending">Pending</string>
+    <string name="label_registered_dev">Registered devices:</string>
+    <string name="label_pending_dev">Devices pending registration:</string>
 </resources>
