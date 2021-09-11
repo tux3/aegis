@@ -1,5 +1,6 @@
 use crate::client::{ApiClient, ClientConfig, RestClient};
-use crate::command::admin::{PendingDevice, RegisteredDevice};
+use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
+use crate::command::device::StatusReply;
 use crate::crypto::{randomized_signature, RootKeys};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
@@ -51,6 +52,10 @@ impl AdminClient {
 
     pub async fn delete_registered(&mut self, name: String) -> Result<()> {
         self.do_request("delete_registered_device", name).await
+    }
+
+    pub async fn set_status(&mut self, arg: SetStatusArg) -> Result<StatusReply> {
+        self.do_request("set_status", arg).await
     }
 }
 

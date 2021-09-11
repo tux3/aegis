@@ -18,7 +18,7 @@ pub struct PendingDevice {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SetStatusArg {
-    pub dev_id: i32,
+    pub dev_name: String,
     pub vt_locked: Option<bool>,
     pub ssh_locked: Option<bool>,
 }

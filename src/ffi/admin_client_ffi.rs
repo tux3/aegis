@@ -1,6 +1,7 @@
 use super::FfiError;
 use crate::client::{AdminClient, ClientConfig};
-use crate::command::admin::{PendingDevice, RegisteredDevice};
+use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
+use crate::command::device::StatusReply;
 use crate::crypto::RootKeys;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -48,6 +49,10 @@ impl AdminClientFfi {
 
     pub fn delete_registered(&self, name: String) -> Result<(), FfiError> {
         self.do_request("delete_registered_device", name)
+    }
+
+    pub fn set_status(&self, arg: SetStatusArg) -> Result<StatusReply, FfiError> {
+        self.do_request("set_status", arg)
     }
 }
 

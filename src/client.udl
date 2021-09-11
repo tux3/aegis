@@ -31,6 +31,17 @@ dictionary RegisteredDevice {
     string pubkey;
 };
 
+dictionary SetStatusArg {
+    string dev_name;
+    boolean? vt_locked;
+    boolean? ssh_locked;
+};
+
+dictionary StatusReply {
+    boolean vt_locked;
+    boolean ssh_locked;
+};
+
 interface AdminClientFfi {
     [Throws=FfiError]
     constructor([ByRef] ClientConfig config, [ByRef] RootKeys keys);
@@ -44,6 +55,8 @@ interface AdminClientFfi {
     sequence<RegisteredDevice> list_registered();
     [Throws=FfiError]
     void delete_registered(string name);
+    [Throws=FfiError]
+    StatusReply set_status(SetStatusArg arg);
 };
 
 namespace client {
