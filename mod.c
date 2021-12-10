@@ -28,13 +28,13 @@ static int __init init(void)
 	if (ret)
 		return ret;
 
-	ret = start_aegisc_monitor_thread();
-	if (ret)
-		return ret;
-
 	ret = aegisk_init_sysfs();
 	if (ret)
 		goto fail;
+
+	ret = start_aegisc_monitor_thread();
+	if (ret)
+		return ret;
 
 	return 0;
 

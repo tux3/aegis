@@ -13,7 +13,7 @@
 #include <linux/umh.h>
 #include "monitor.h"
 
-static const char *aegisc_path = "/usr/local/bin/aegisc";
+static const char *aegisc_path = "/usr/local/sbin/aegisc";
 
 static DECLARE_COMPLETION(aegisc_umh_startup_done);
 static int aegisc_umh_statup_err;
