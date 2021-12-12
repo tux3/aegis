@@ -29,11 +29,11 @@ tokio-tungstenite = { version = "0.15.0", optional = true }
 reqwest = { version = "0.11.4", features = ["rustls-tls", "gzip"], default-features = false, optional = true }
 
 # FFI (note: uniffi versions must always be in sync — otherwise problems happen at runtime!)
-uniffi = { version = "0.14.0", optional = true }
-uniffi_macros = { version = "0.14.0", optional = true }
+uniffi = { version = "=0.15.2", optional = true }
+uniffi_macros = { version = "=0.15.2", optional = true }
 
 [build-dependencies]
-uniffi_build = { version = "0.14.0", optional = true }
+uniffi_build = { version = "=0.15.2", optional = true }
 
 [features]
 client = ["async-trait", "futures", "bytes", "tokio", "tokio-tungstenite", "reqwest"]
