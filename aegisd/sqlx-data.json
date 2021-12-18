@@ -1,0 +1,576 @@
+{
+  "db": "PostgreSQL",
+  "076d3b2642c64feb275d874e5a25e7b556e2368ad07c2ba9595c73ac28122568": {
+    "query": "SELECT id, created_at, name, pubkey, pending FROM device LIMIT $1 OFFSET $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "13bcf77e7f30dec43dd37532315486b7fe1378e675c14c67af28873eb7fc26f4": {
+    "query": "SELECT id, created_at, name, pubkey, pending FROM device",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "142454244324373343666dfc5fbc86d54c5ef04983e9a09dce1f753c72f09cd7": {
+    "query": "DELETE FROM device_status WHERE dev_id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "15c3e3424009f0684fa2efdd9d23923a4e5486b62871d77bd663ea5c7db52f86": {
+    "query": "INSERT INTO device_status (dev_id, updated_at) VALUES ($1, $2) RETURNING vt_locked, ssh_locked",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "vt_locked",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 1,
+          "name": "ssh_locked",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Timestamp"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "467c023ccf68ff0a7681a6af149e7032593b27facbc5e785587dd3cac678c1bc": {
+    "query": "SELECT id FROM device WHERE pending = FALSE AND name = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "4bb076348fdf356611c74b52e127106fb7d40c20570e9d599ba358d16b2d6ba8": {
+    "query": "INSERT INTO device (created_at, name, pubkey, pending) VALUES ($1, $2, $3, $4) RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Text",
+          "Text",
+          "Bool"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "4c96df47d05cc5b17e5652267bdea54cea8f50ba16e18a748e0fc2a6c47ca306": {
+    "query": "DELETE FROM device WHERE pending = FALSE AND name = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "534b7fca695fc0cf63b1ab554ae627a80eb829339a3671cbd1f1ebf6c3efad26": {
+    "query": "SELECT * FROM device WHERE pending = FALSE",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "6b797f736414f6a552eec16112a1b66747ae6d00f68f1fe1a3ad997cc0efe4b9": {
+    "query": "UPDATE device SET pending = FALSE WHERE name = $1 AND pending = TRUE\n         RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "99041986a28814bb930760aa99badcfd45edf6d506deb74c57053a2cbd42781a": {
+    "query": "SELECT COUNT(*) FROM device WHERE pending = TRUE",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "a3a0fd4cc57a97671c73f479781d52ce7fba75d006320494d4ca1c0c221b6b4a": {
+    "query": "UPDATE device_status SET updated_at = $1, vt_locked = $2, ssh_locked = $3 WHERE dev_id = $4",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Bool",
+          "Bool",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "af799e89b5f3697bf87ebccf8b757f62eae66c76254fdaf1cb93e0673759145e": {
+    "query": "SELECT * FROM device_status WHERE dev_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "vt_locked",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "ssh_locked",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "c144ca57ce3498c6f4f40b22f9e18f80c559e2b7923e68acea288039e33b4f79": {
+    "query": "SELECT id, created_at, name, pubkey, pending FROM device WHERE id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "c4e8b1e139ecdf34f29764ee5b0e8e1ca82dbf34eda31a8e7b2b60744d483171": {
+    "query": "SELECT dev_id, updated_at, vt_locked, ssh_locked FROM device_status WHERE dev_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "vt_locked",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "ssh_locked",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "d2bee6c970f6818e218a450b8cbfeb97d240257f4296378bc21e56a7623b75da": {
+    "query": "UPDATE device SET created_at = $1, name = $2, pubkey = $3, pending = $4 WHERE id = $5",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Text",
+          "Text",
+          "Bool",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "d49079477cac10509501f9bc65120879cea1c869317a4b2dc356c58004a1851e": {
+    "query": "SELECT dev_id, updated_at, vt_locked, ssh_locked FROM device_status LIMIT $1 OFFSET $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "vt_locked",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "ssh_locked",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "e6e51578619ccac3abc4745024270ba0faf6a9039c2fd613b2c1e16d5c9ba413": {
+    "query": "SELECT id FROM device WHERE pending = FALSE AND pubkey = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "eba4b28f942f7012b3ea7dbc8f72a539cc7536061a1f93d279c527f4762be6e6": {
+    "query": "SELECT * FROM device WHERE pending = TRUE",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "pubkey",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "pending",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "f519dd31fc736b17f5c273eb94ce94919eff17b3d464cd45cf29c2be7005bd03": {
+    "query": "SELECT dev_id, updated_at, vt_locked, ssh_locked FROM device_status",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 2,
+          "name": "vt_locked",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 3,
+          "name": "ssh_locked",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "f81978c7a0ef0415cb4be6739c2da1728bb5fa803ed5d40206b6118b361ff5ab": {
+    "query": "DELETE FROM device WHERE pending = TRUE AND name = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "fc4d862ae0ce717c35a30126aec24fe8c0a5d47004d87fd1b61e7e8db28176f9": {
+    "query": "DELETE FROM device WHERE id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  }
+}
