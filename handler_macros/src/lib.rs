@@ -35,13 +35,11 @@ pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
     let input_fn_ident = &input.sig.ident;
     let http_fn_ident = syn::Ident::new(
-        &format!("__{}_http_handler", input_fn_ident.to_string()),
+        &format!("__{}_http_handler", &input_fn_ident),
         Span::call_site(),
     );
-    let handler_fn_ident = syn::Ident::new(
-        &format!("__{}_handler", input_fn_ident.to_string()),
-        Span::call_site(),
-    );
+    let handler_fn_ident =
+        syn::Ident::new(&format!("__{}_handler", &input_fn_ident), Span::call_site());
 
     if input.sig.asyncness.is_none() {
         return quote_spanned! {
@@ -87,6 +85,7 @@ pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let outer_fn = quote! {
         pub async fn #http_fn_ident(req: actix_web::HttpRequest, body: Bytes) -> Result<Bytes, actix_web::Error> {
+            use actix_web::HttpMessage;
             let dev_id = *req.extensions()
                              .get::<DeviceId>()
                              .expect("Missing device id in device request handler");
@@ -141,7 +140,7 @@ pub fn admin_handler(args: TokenStream, input: TokenStream) -> TokenStream {
     let input_block = &input.block;
     let input_fn_ident = &input.sig.ident;
     let http_fn_ident = syn::Ident::new(
-        &format!("__{}_http_handler", input_fn_ident.to_string()),
+        &format!("__{}_http_handler", &input_fn_ident),
         Span::call_site(),
     );
 
