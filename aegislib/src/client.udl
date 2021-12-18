@@ -1,0 +1,64 @@
+interface RootKeys {
+    [Name=derive]
+    constructor([ByRef] string password);
+    [Name=from_bytes,Throws=FfiError]
+    constructor([ByRef] sequence<u8> bytes);
+    sequence<u8> to_bytes();
+    boolean matches_serializes_pubkey([ByRef] string pubkey);
+};
+
+dictionary ClientConfig {
+    string server_addr;
+    boolean use_tls;
+    boolean use_rest;
+};
+
+[Error]
+enum FfiError {
+  "Error",
+};
+
+dictionary PendingDevice {
+    string name;
+    timestamp created_at;
+    string pubkey;
+};
+
+dictionary RegisteredDevice {
+    i32 id;
+    string name;
+    timestamp created_at;
+    string pubkey;
+};
+
+dictionary SetStatusArg {
+    string dev_name;
+    boolean? vt_locked;
+    boolean? ssh_locked;
+};
+
+dictionary StatusReply {
+    boolean vt_locked;
+    boolean ssh_locked;
+};
+
+interface AdminClientFfi {
+    [Throws=FfiError]
+    constructor([ByRef] ClientConfig config, [ByRef] RootKeys keys);
+    [Throws=FfiError]
+    sequence<PendingDevice> list_pending();
+    [Throws=FfiError]
+    void delete_pending(string name);
+    [Throws=FfiError]
+    void confirm_pending(string name);
+    [Throws=FfiError]
+    sequence<RegisteredDevice> list_registered();
+    [Throws=FfiError]
+    void delete_registered(string name);
+    [Throws=FfiError]
+    StatusReply set_status(SetStatusArg arg);
+};
+
+namespace client {
+
+};
