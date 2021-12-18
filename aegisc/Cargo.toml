@@ -1,0 +1,14 @@
+[package]
+name = "aegisc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aegislib = { path = "../aegislib", features = ["client"] }
+serde = { version = "1.0", features = ["derive"], default-features = false }
+tokio = { version = "1.4", features = ["macros", "rt-multi-thread"] }
+toml = "0.5.8"
+anyhow = "1.0.43"
+tracing = "0.1.26"
+tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
+clap = "3.0.0-rc.7"
