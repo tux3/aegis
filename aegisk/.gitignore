@@ -1,0 +1,12 @@
+.idea/
+Module.symvers
+modules.order
+*.patch
+*.ko
+*.o
+*.o.d
+*.cmd
+*.mod
+*.mod.*
+mod.c.base
+/notes
