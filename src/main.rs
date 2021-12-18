@@ -4,7 +4,7 @@ mod config;
 use aegislib::client::{AdminClient, DeviceClient};
 use aegislib::crypto::sign_keypair_from_file;
 use anyhow::{Context, Result};
-use clap::{clap_app, AppSettings};
+use clap::{app_from_crate, arg, App, AppSettings};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -15,68 +15,77 @@ async fn main() -> Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    let args = clap_app!(aegiscli =>
-        (version: env!("CARGO_PKG_VERSION"))
-        (author: env!("CARGO_PKG_AUTHORS"))
-        (about: env!("CARGO_PKG_DESCRIPTION"))
-        (@arg config: -c --config +takes_value "Path to the config file")
-        (@arg use_rest: --rest "Use REST API instead of websockets")
-        (@subcommand "gen-device-key" =>
-            (about: "Generate a random device key file")
-            (@arg output: +required "The destination file")
+    let args = app_from_crate!()
+        .arg(
+            arg!(-c --config <path> "Path to the config file")
+                .allow_invalid_utf8(true) // Paths are not UTF-8
+                .required(false),
         )
-        (@subcommand "derive-root-key-file" =>
-            (about: "Generate a root key file from a password")
-            (@arg output: +required "The output file")
-            (@arg password: "The password for the new root key")
+        .arg(arg!(use_rest: --rest "Use REST API instead of websockets").required(false))
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand(
+            App::new("gen-device-key")
+                .about("Generate a random device key file")
+                .arg(arg!(<output> "The destination file").allow_invalid_utf8(true)),
         )
-        (@subcommand "derive-root-pubkey" =>
-            (about: "Generate a root public signature key from a password")
-            (@arg password: "The password for the new root key")
+        .subcommand(
+            App::new("derive-root-key-file")
+                .about("Generate a root key file from a password")
+                .arg(arg!(<output> "The destination file").allow_invalid_utf8(true))
+                .arg(arg!([password] "The password for the new root key")),
         )
-        (@subcommand "register" =>
-            (about: "Register as a device pending validation by an admin")
-            (@arg key: +required "The device private key file")
-            (@arg name: +required "The device's name")
+        .subcommand(
+            App::new("derive-root-pubkey")
+                .about("Generate a root public signature key from a password")
+                .arg(arg!([password] "The password for the new root key")),
         )
-        (@subcommand "admin" =>
-            (about: "Send control request using the admin root keys")
-            (@arg key: +required "The admin root key file")
-            (@subcommand "list-pending" =>
-                (about: "List registered devices pending validation")
-            )
-            (@subcommand "delete-pending" =>
-                (about: "Delete a device pending validation")
-                (@arg name: +required "The device's name")
-            )
-            (@subcommand "confirm-pending" =>
-                (about: "Confirm a device pending validation")
-                (@arg name: +required "The device's name")
-            )
-            (@subcommand "list-device" =>
-                (about: "List valid registered devices")
-            )
-            (@subcommand "delete-device" =>
-                (about: "Delete a valid registered device")
-                (@arg name: +required "The device's name")
-            )
-            (@subcommand "set-status" =>
-                (about: "Update status for a registered device")
-                (@arg name: +required "The device's name")
-                (@arg "vt-lock": --("vt-lock") +takes_value "Lock the system onto a blank TTY")
-                (@arg "ssh-lock": --("ssh-lock") +takes_value "Disable new SSH logins")
-            )
+        .subcommand(
+            App::new("register")
+                .about("Register as a device pending validation by an admin")
+                .arg(arg!(<key> "The device private key file").allow_invalid_utf8(true))
+                .arg(arg!(<name> "The device's name")),
         )
-        (@subcommand "device" =>
-            (about: "Send requests as if running on a device")
-            (@arg key: +required "The device private key file")
-            (@subcommand "status" =>
-                (about: "Get the expected status for this device")
-            )
+        .subcommand(
+            App::new("admin")
+                .about("Send control request using the admin root keys")
+                .arg(arg!(<key> "The admin root key file").allow_invalid_utf8(true))
+                .subcommand(
+                    App::new("list-pending").about("List registered devices pending validation"),
+                )
+                .subcommand(
+                    App::new("delete-pending")
+                        .about("Delete a device pending validation")
+                        .arg(arg!(<name> "The device's name")),
+                )
+                .subcommand(
+                    App::new("confirm-pending")
+                        .about("Confirm a device pending validation")
+                        .arg(arg!(<name> "The device's name")),
+                )
+                .subcommand(App::new("list-device").about("List valid registered devices"))
+                .subcommand(
+                    App::new("delete-device")
+                        .about("Delete a valid registered device")
+                        .arg(arg!(<name> "The device's name")),
+                )
+                .subcommand(
+                    App::new("set-status")
+                        .about("Update status for a registered device")
+                        .arg(arg!(<name> "The device's name"))
+                        .arg(
+                            arg!(--"vt-lock" <value> "Lock the system onto a blank TTY")
+                                .required(false),
+                        )
+                        .arg(arg!(--"ssh-lock" <value> "Disable new SSH logins").required(false)),
+                ),
         )
-    )
-    .setting(AppSettings::ArgRequiredElseHelp)
-    .get_matches();
+        .subcommand(
+            App::new("device")
+                .about("Send requests as if running on a device")
+                .arg(arg!(<key> "The device private key file").allow_invalid_utf8(true))
+                .subcommand(App::new("status").about("Get the expected status for this device")),
+        )
+        .get_matches();
 
     let config_path = args
         .value_of_os("config")
