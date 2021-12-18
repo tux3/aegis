@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
-    pub server_addr: String,
     pub use_tls: bool,
+    pub server_addr: String,
 }
 
 impl Config {

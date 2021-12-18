@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
                 .long("config")
                 .takes_value(true)
                 .required(true)
-                .about("Path to the config file"),
+                .help("Path to the config file"),
         )
         .get_matches();
     let config_path = args
