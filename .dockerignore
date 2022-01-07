@@ -1,0 +1,6 @@
+/.git
+/notes
+/target
+/*.Dockerfile
+/app
+/aegisk

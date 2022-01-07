@@ -10,6 +10,7 @@ use crate::handler::device::device_handler_iter;
 use crate::handler::root::{health, register, websocket};
 use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
+use actix_web::middleware::Logger;
 use anyhow::Result;
 use clap::Arg;
 use sqlx::postgres::PgPoolOptions;
@@ -68,7 +69,7 @@ async fn main() -> Result<()> {
             .service(register)
             .service(health);
 
-        let mut admin_scope = web::scope("/admin/").wrap(middleware::AdminReqTransform);
+        let mut admin_scope = web::scope("/admin").wrap(middleware::AdminReqTransform);
         for handler in admin_handler_iter() {
             admin_scope = admin_scope.route(handler.path, web::post().to(handler.http_handler));
         }
@@ -79,7 +80,8 @@ async fn main() -> Result<()> {
         for handler in device_handler_iter() {
             device_scope = device_scope.route(handler.path, web::post().to(handler.http_handler));
         }
-        app.service(device_scope)
+        let app = app.service(device_scope);
+        app.wrap(Logger::default())
     };
 
     let server = HttpServer::new(app_fn).bind(("0.0.0.0", config.port))?;
