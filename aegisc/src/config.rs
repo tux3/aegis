@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context, Result};
 pub struct Config {
     pub use_tls: bool,
     pub server_addr: String,
+    pub device_key_path: PathBuf,
 }
 
 impl Config {
@@ -20,7 +21,8 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             use_tls: true,
-            server_addr: "https://alacrem.net/aegis".to_string()
+            server_addr: "alacrem.net/aegis".to_string(),
+            device_key_path: "/var/lib/aegisc/device.key".into()
         }
     }
 }

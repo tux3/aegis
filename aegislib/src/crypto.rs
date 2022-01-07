@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use signature::Signature;
 use std::path::Path;
 
+pub use ed25519_dalek::Keypair;
+
 // Random buffer prepended to the signature. Doesn't actually prevent any kind of replay!
 // Mostly this serves to inject random *somewhere* (hey, we get websocket message IDs for free!)
 const SIGNATURE_RANDOM_BUF_LEN: usize = 16;

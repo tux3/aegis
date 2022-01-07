@@ -1,7 +1,7 @@
 use crate::client::{ApiClient, ClientConfig, RestClient, WsClient};
 use crate::command::device::{StatusArg, StatusReply};
 use crate::crypto::randomized_signature;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -22,7 +22,7 @@ impl DeviceClient {
         let client: Box<dyn ApiClient> = if config.use_rest {
             Box::new(RestClient::new_client(config).await?)
         } else {
-            Box::new(WsClient::new_device_client(config, &key).await?)
+            Box::new(WsClient::new_device_client(config, &key).await.with_context(|| format!("Connecting to websocket {}", &config.server_addr))?)
         };
         Ok(DeviceClient {
             client,

@@ -1,6 +1,8 @@
 mod config;
+mod device_key;
+mod client;
 
-use anyhow::Result;
+use anyhow::{Result};
 use clap::Arg;
 use tracing_subscriber::EnvFilter;
 use crate::config::Config;
@@ -24,7 +26,6 @@ async fn main() -> Result<()> {
                 .short('c')
                 .long("config")
                 .takes_value(true)
-                .required(true)
                 .help("Path to the config file"),
         )
         .get_matches();
@@ -32,6 +33,10 @@ async fn main() -> Result<()> {
         .value_of_os("config")
         .map(Into::into)
         .unwrap_or_else(config::default_path);
-    let config = Config::from_file(config_path).unwrap_or_else(|_| Config::default());
+    let config = &Config::from_file(config_path).unwrap_or_else(|_| Config::default());
+
+    let dev_key = device_key::get_or_create_keys(config.device_key_path.as_ref())?;
+    let client = client::connect(config, dev_key).await?;
+
     Ok(())
 }
