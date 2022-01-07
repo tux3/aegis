@@ -87,18 +87,6 @@
       ]
     }
   },
-  "142454244324373343666dfc5fbc86d54c5ef04983e9a09dce1f753c72f09cd7": {
-    "query": "DELETE FROM device_status WHERE dev_id = $1",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "15c3e3424009f0684fa2efdd9d23923a4e5486b62871d77bd663ea5c7db52f86": {
     "query": "INSERT INTO device_status (dev_id, updated_at) VALUES ($1, $2) RETURNING vt_locked, ssh_locked",
     "describe": {
@@ -556,18 +544,6 @@
       "parameters": {
         "Left": [
           "Text"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "fc4d862ae0ce717c35a30126aec24fe8c0a5d47004d87fd1b61e7e8db28176f9": {
-    "query": "DELETE FROM device WHERE id = $1",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4"
         ]
       },
       "nullable": []
