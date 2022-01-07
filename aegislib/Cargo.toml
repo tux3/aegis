@@ -25,7 +25,7 @@ async-trait = { version = "0.1.51", optional = true }
 futures = { version = "0.3.17", optional = true }
 bytes = { version = "1.1.0", optional = true }
 tokio = { version = "1.4", features = ["net"], default-features = false, optional = true }
-tokio-tungstenite = { version = "0.16.1", optional = true }
+tokio-tungstenite = { version = "0.16.1", features = ["rustls-tls-webpki-roots"], optional = true }
 reqwest = { version = "0.11.4", features = ["rustls-tls", "gzip"], default-features = false, optional = true }
 
 # FFI (note: uniffi versions must always be in sync — otherwise problems happen at runtime!)
