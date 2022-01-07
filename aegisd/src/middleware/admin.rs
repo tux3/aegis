@@ -90,7 +90,7 @@ where
                 return Err(ErrorForbidden("Invalid signature"));
             }
 
-            let mut payload = actix_http::h1::Payload::empty();
+            let (_, mut payload) = actix_http::h1::Payload::create(true);
             payload.unread_data(body.into());
             req.set_payload(payload.into());
 
