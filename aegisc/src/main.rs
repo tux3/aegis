@@ -3,6 +3,7 @@ mod config;
 use anyhow::Result;
 use clap::Arg;
 use tracing_subscriber::EnvFilter;
+use crate::config::Config;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -31,6 +32,6 @@ async fn main() -> Result<()> {
         .value_of_os("config")
         .map(Into::into)
         .unwrap_or_else(config::default_path);
-    let config = config::Config::from_file(config_path);
+    let config = Config::from_file(config_path).unwrap_or_else(|_| Config::default());
     Ok(())
 }

@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
+use anyhow::{anyhow, Context, Result};
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
@@ -8,10 +9,19 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_file(path: impl AsRef<Path>) -> Config {
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Config> {
         let contents = std::fs::read_to_string(path.as_ref())
-            .unwrap_or_else(|_| panic!("Failed to read config file: {}", path.as_ref().display()));
-        toml::from_str(&contents).expect("Invalid config file format")
+            .map_err(|e| anyhow!("Failed to read config file {}: {}", path.as_ref().display(), e))?;
+        toml::from_str(&contents).context("Invalid config file format")
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            use_tls: true,
+            server_addr: "https://alacrem.net/aegis".to_string()
+        }
     }
 }
 
