@@ -1,5 +1,6 @@
 use crate::config::Config;
 use aegislib::crypto::sign_keypair_from_file;
+use reqwest::StatusCode;
 use anyhow::bail;
 use anyhow::Result;
 use clap::ArgMatches;
@@ -21,6 +22,9 @@ pub async fn register(config: &Config, args: &ArgMatches) -> Result<()> {
         ))
         .send()
         .await?;
+    if reply.status().as_u16() == StatusCode::CONFLICT {
+        bail!("Device already exists (HTTP error 409)")
+    }
     if !reply.status().is_success() {
         bail!(
             "{}: {}",
