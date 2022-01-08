@@ -23,7 +23,7 @@ async fn register(config: &Config, key: &Keypair) -> Result<()> {
 pub async fn connect(config: &Config, mut key: Keypair) -> Result<DeviceClient> {
     let mut has_registered = false;
     loop {
-        match DeviceClient::new(&config.into(), key).await {
+        match DeviceClient::new(&config.into(), key, None).await {
             Ok(c) => return Ok(c),
             Err((_, ClientError::Other(err))) => return Err(err),
             Err((err_key, ClientError::Http(err))) => {

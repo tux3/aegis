@@ -10,6 +10,7 @@ use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
 use aegislib::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
 use aegislib::command::device::StatusReply;
+use aegislib::command::server::StatusUpdate;
 use anyhow::Result;
 use sqlx::PgConnection;
 use tracing::warn;
@@ -57,7 +58,11 @@ pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<Stat
         .await?
         .into();
     if let Some(ws) = ws_for_device(DeviceId(dev_id)) {
-        ws.send(WsServerCommand::from(&status))
+        let status_update = StatusUpdate {
+            ssh_locked: status.ssh_locked,
+            vt_locked: status.vt_locked,
+        };
+        ws.send(WsServerCommand::from(status_update))
             .await
             .unwrap_or_else(|e| {
                 warn!(

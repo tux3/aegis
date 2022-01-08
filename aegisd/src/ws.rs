@@ -6,10 +6,11 @@ use actix::{
 use actix_http::ws;
 use actix_web::web::{Bytes, BytesMut};
 use actix_web_actors::ws::WebsocketContext;
-use aegislib::command::device::StatusReply;
+use aegislib::command::server::ServerCommand;
 use aegislib::crypto::check_signature;
 use dashmap::DashMap;
 use ed25519_dalek::PublicKey;
+use serde::Serialize;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -45,17 +46,14 @@ pub struct WsResponse {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct WsServerCommand {
-    command: Bytes,
     payload: Bytes,
 }
 
-impl From<&StatusReply> for WsServerCommand {
-    fn from(status: &StatusReply) -> Self {
-        let payload = Bytes::from(bincode::serialize(status).unwrap());
-        Self {
-            command: "set_status".into(),
-            payload,
-        }
+impl<T: Into<ServerCommand> + Serialize> From<T> for WsServerCommand {
+    fn from(cmd: T) -> Self {
+        let cmd = cmd.into();
+        let payload = Bytes::from(bincode::serialize(&cmd).unwrap());
+        Self { payload }
     }
 }
 
@@ -202,9 +200,8 @@ impl Handler<WsServerCommand> for WsConn {
     fn handle(&mut self, msg: WsServerCommand, ctx: &mut Self::Context) {
         // WS server message format: <handler> <payload>
         ctx.write_raw(ws::Message::Continuation(ws::Item::FirstBinary(
-            msg.command,
+            "server_command ".into(),
         )));
-        ctx.write_raw(ws::Message::Continuation(ws::Item::Continue(" ".into())));
         ctx.write_raw(ws::Message::Continuation(ws::Item::Last(msg.payload)));
     }
 }

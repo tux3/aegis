@@ -1,9 +1,11 @@
 use crate::client::{ApiClient, ClientConfig, ClientError, RestClient, WsClient};
 use crate::command::device::{StatusArg, StatusReply};
+use crate::command::server::ServerCommand;
 use crate::crypto::randomized_signature;
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use tokio::sync::mpsc::Sender;
 
 pub struct DeviceClient {
     client: Box<dyn ApiClient>,
@@ -15,6 +17,7 @@ impl DeviceClient {
     pub async fn new(
         config: &ClientConfig,
         key: ed25519_dalek::Keypair,
+        event_tx: Option<Sender<ServerCommand>>,
     ) -> Result<Self, (ed25519_dalek::Keypair, ClientError)> {
         let api_base = if config.use_rest {
             let dev_pk = base64::encode_config(&key.public, base64::URL_SAFE_NO_PAD);
@@ -23,9 +26,15 @@ impl DeviceClient {
             String::new()
         };
         let client: Box<dyn ApiClient> = if config.use_rest {
+            if event_tx.is_some() {
+                return Err((
+                    key,
+                    anyhow!("Cannot receive events if config.use_rest is true").into(),
+                ));
+            }
             Box::new(RestClient::new_client(config).await)
         } else {
-            match WsClient::new_device_client(config, &key).await {
+            match WsClient::new_device_client(config, &key, event_tx).await {
                 Err(e) => return Err((key, e)),
                 Ok(c) => Box::new(c),
             }
