@@ -3,13 +3,16 @@
 mod handler_inventory;
 pub use handler_inventory::admin_handler_iter;
 
+use crate::handler::device::DeviceId;
 use crate::model::device::*;
+use crate::ws::{ws_for_device, WsServerCommand};
 use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
 use aegislib::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
 use aegislib::command::device::StatusReply;
 use anyhow::Result;
 use sqlx::PgConnection;
+use tracing::warn;
 
 #[admin_handler("/list_pending_devices")]
 pub async fn list_pending_devices(db: &mut PgConnection) -> Result<Vec<PendingDevice>> {
@@ -50,7 +53,19 @@ pub async fn delete_registered_device(db: &mut PgConnection, name: String) -> Re
 #[admin_handler("/set_status")]
 pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<StatusReply> {
     let dev_id = get_dev_id_by_name(db, &arg.dev_name).await?;
-    Ok(update_status(db, dev_id, arg.vt_locked, arg.ssh_locked)
+    let status: StatusReply = update_status(db, dev_id, arg.vt_locked, arg.ssh_locked)
         .await?
-        .into())
+        .into();
+    if let Some(ws) = ws_for_device(DeviceId(dev_id)) {
+        ws.send(WsServerCommand::from(&status))
+            .await
+            .unwrap_or_else(|e| {
+                warn!(
+                    "Failed to send status update to websocket for device {}: {}",
+                    dev_id, e
+                );
+            });
+    }
+
+    Ok(status)
 }

@@ -10,7 +10,7 @@ use actix_web::web::Bytes;
 use anyhow::Result;
 use sqlx::PgConnection;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct DeviceId(pub i32);
 
 #[device_handler("/status")]

@@ -1,12 +1,14 @@
 use crate::handler::device::{device_handler_iter, DeviceHandlerFn, DeviceId};
 use actix::{
-    Actor, ActorContext, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
+    Actor, ActorContext, Addr, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
     WrapFuture,
 };
 use actix_http::ws;
 use actix_web::web::{Bytes, BytesMut};
 use actix_web_actors::ws::WebsocketContext;
+use aegislib::command::device::StatusReply;
 use aegislib::crypto::check_signature;
+use dashmap::DashMap;
 use ed25519_dalek::PublicKey;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -24,6 +26,12 @@ lazy_static::lazy_static! {
         }
         m
     };
+
+    static ref WS_CLIENT_MAP: DashMap<DeviceId, Addr<WsConn>> = DashMap::new();
+}
+
+pub fn ws_for_device(dev_id: DeviceId) -> Option<Addr<WsConn>> {
+    WS_CLIENT_MAP.get(&dev_id).map(|a| a.clone())
 }
 
 #[derive(Message)]
@@ -32,6 +40,23 @@ pub struct WsResponse {
     is_ok: bool,
     msg_id: Bytes,
     payload: Bytes,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct WsServerCommand {
+    command: Bytes,
+    payload: Bytes,
+}
+
+impl From<&StatusReply> for WsServerCommand {
+    fn from(status: &StatusReply) -> Self {
+        let payload = Bytes::from(bincode::serialize(status).unwrap());
+        Self {
+            command: "set_status".into(),
+            payload,
+        }
+    }
 }
 
 pub struct WsConn {
@@ -171,11 +196,29 @@ impl Handler<WsResponse> for WsConn {
     }
 }
 
+impl Handler<WsServerCommand> for WsConn {
+    type Result = ();
+
+    fn handle(&mut self, msg: WsServerCommand, ctx: &mut Self::Context) {
+        // WS server message format: <handler> <payload>
+        ctx.write_raw(ws::Message::Continuation(ws::Item::FirstBinary(
+            msg.command,
+        )));
+        ctx.write_raw(ws::Message::Continuation(ws::Item::Continue(" ".into())));
+        ctx.write_raw(ws::Message::Continuation(ws::Item::Last(msg.payload)));
+    }
+}
+
 impl Actor for WsConn {
     type Context = WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
+        WS_CLIENT_MAP.insert(self.device_id, ctx.address());
         self.start_heartbeat(ctx);
+    }
+
+    fn stopped(&mut self, _ctx: &mut Self::Context) {
+        WS_CLIENT_MAP.remove(&self.device_id);
     }
 }
 
