@@ -1,11 +1,11 @@
+mod client;
 mod config;
 mod device_key;
-mod client;
 
-use anyhow::{Result};
+use crate::config::Config;
+use anyhow::Result;
 use clap::Arg;
 use tracing_subscriber::EnvFilter;
-use crate::config::Config;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -34,9 +34,16 @@ async fn main() -> Result<()> {
         .map(Into::into)
         .unwrap_or_else(config::default_path);
     let config = &Config::from_file(config_path).unwrap_or_else(|_| Config::default());
+    tracing::info!(
+        device_name = config.device_name.as_str(),
+        server_addr = config.server_addr.as_str(),
+        use_tls = config.use_tls,
+        "Loaded config"
+    );
 
     let dev_key = device_key::get_or_create_keys(config.device_key_path.as_ref())?;
     let client = client::connect(config, dev_key).await?;
+    tracing::info!("Connected to server websocket");
 
     Ok(())
 }

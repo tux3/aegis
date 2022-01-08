@@ -1,5 +1,5 @@
-use crate::client::{ApiClient, ClientConfig};
-use anyhow::{bail, Result};
+use crate::client::{ApiClient, ClientConfig, ClientError, ClientHttpError};
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::Client;
@@ -10,7 +10,7 @@ pub struct RestClient {
 }
 
 impl RestClient {
-    pub async fn new_client(config: &ClientConfig) -> Result<Self> {
+    pub async fn new_client(config: &ClientConfig) -> Self {
         let proto = if config.use_tls {
             "https://"
         } else {
@@ -19,7 +19,7 @@ impl RestClient {
         let base_url = format!("{}{}", proto, &config.server_addr);
         let client = Client::new();
 
-        Ok(Self { base_url, client })
+        Self { base_url, client }
     }
 }
 
@@ -30,7 +30,7 @@ impl ApiClient for RestClient {
         handler: &str,
         signature: &[u8],
         payload: Vec<u8>,
-    ) -> Result<Bytes> {
+    ) -> Result<Bytes, ClientError> {
         let signature = base64::encode_config(signature, base64::URL_SAFE_NO_PAD);
 
         let url = format!("{}{}", &self.base_url, handler);
@@ -40,10 +40,15 @@ impl ApiClient for RestClient {
             .bearer_auth(signature)
             .body(payload)
             .send()
-            .await?;
+            .await
+            .map_err(Error::from)?;
         if !reply.status().is_success() {
-            bail!("{}: {}", reply.status().as_str(), reply.text().await?);
+            return Err(ClientHttpError {
+                code: reply.status(),
+                message: reply.text().await.ok(),
+            }
+            .into());
         }
-        Ok(reply.bytes().await?)
+        Ok(reply.bytes().await.map_err(Error::from)?)
     }
 }

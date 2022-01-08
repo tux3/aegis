@@ -13,7 +13,7 @@ pub struct AdminClient {
 
 impl AdminClient {
     pub async fn new(config: &ClientConfig, keys: &RootKeys) -> Result<Self> {
-        let client = RestClient::new_client(config).await?;
+        let client = RestClient::new_client(config).await;
         Ok(AdminClient {
             client,
             // No Clone, because let's frustrate people until they decide to use libsodium instead :(

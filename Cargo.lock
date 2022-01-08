@@ -338,6 +338,7 @@ dependencies = [
  "reqwest",
  "serde",
  "signature",
+ "thiserror",
  "tokio",
  "tokio-tungstenite",
  "tracing",

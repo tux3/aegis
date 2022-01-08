@@ -132,7 +132,9 @@ async fn main() -> Result<()> {
         }
         ("device", dev_args) => {
             let dev_key = sign_keypair_from_file(dev_args.value_of_os("key").unwrap())?;
-            let client = DeviceClient::new(&config.into(), dev_key).await?;
+            let client = DeviceClient::new(&config.into(), dev_key)
+                .await
+                .map_err(|(_, e)| e)?;
             match dev_args.subcommand().unwrap() {
                 ("status", sub_args) => cmd::device::status(config, client, sub_args).await,
                 _ => unreachable!(),
