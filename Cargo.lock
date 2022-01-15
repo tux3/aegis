@@ -331,7 +331,6 @@ dependencies = [
  "bincode",
  "bytes",
  "chacha20poly1305",
- "chrono",
  "derive_more",
  "ed25519-dalek",
  "futures",
@@ -340,7 +339,6 @@ dependencies = [
  "reqwest",
  "serde",
  "signature",
- "strum",
  "strum_macros",
  "thiserror",
  "tokio",
@@ -618,7 +616,6 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
- "serde",
  "time 0.1.43",
  "winapi",
 ]
@@ -2297,12 +2294,6 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-
-[[package]]
-name = "strum"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cae14b91c7d11c9a851d3fbc80a963198998c2a64eec840477fa92d8ce9b70bb"
 
 [[package]]
 name = "strum_macros"
