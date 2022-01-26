@@ -5,10 +5,12 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::stream::{SplitSink, SplitStream, StreamExt};
 use futures::SinkExt;
+use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::spawn;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::Mutex;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::{Error as WsError, Message};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
@@ -20,12 +22,13 @@ struct WsRequestReply {
 }
 
 enum WsReceivedMessage {
+    Ping,
     ServerCommand(ServerCommand),
     RequestReply(WsRequestReply),
 }
 
 pub struct WsClient {
-    write: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
+    write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     request_tx: Sender<Vec<u8>>,
     response_rx: Receiver<Result<Bytes, ClientError>>,
 }
@@ -54,12 +57,16 @@ impl WsClient {
         debug!("WebSocket handshake completed");
 
         let (write, read) = ws_stream.split();
+        let write = Arc::new(Mutex::new(write));
         let (request_tx, request_rx) = channel(1);
         let (response_tx, response_rx) = channel(1);
 
-        let _ = spawn(
-            async move { Self::recv_messages(read, request_rx, response_tx, event_tx).await },
-        );
+        {
+            let write = write.clone();
+            let _ = spawn(async move {
+                Self::recv_messages(read, request_rx, response_tx, event_tx, write).await
+            });
+        }
         Ok(WsClient {
             write,
             request_tx,
@@ -72,6 +79,7 @@ impl WsClient {
         mut request_rx: Receiver<Vec<u8>>,
         response_tx: Sender<Result<Bytes, ClientError>>,
         event_tx: Option<Sender<ServerCommand>>,
+        write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     ) {
         let mut last_request_id = None;
         let err = loop {
@@ -83,6 +91,16 @@ impl WsClient {
                 break e;
             }
             match Self::parse_received_message(msg) {
+                Ok(WsReceivedMessage::Ping) => {
+                    let mut write = write.lock().await;
+                    if let Err(e) = write
+                        .send(Message::Pong(b"pong".to_vec()))
+                        .await
+                        .map_err(Error::from)
+                    {
+                        warn!("WsClient::recv_message: Failed answer ping: {}", e);
+                    }
+                }
                 Ok(WsReceivedMessage::ServerCommand(cmd)) => {
                     if let Some(event_tx) = &event_tx {
                         if let Err(e) = event_tx.send(cmd).await {
@@ -156,8 +174,13 @@ impl WsClient {
             bincode::deserialize(&data[first_field.len() + 1..])
                 .map(WsReceivedMessage::ServerCommand)
                 .map_err(From::from)
+        } else if first_field == b"ping" {
+            Ok(WsReceivedMessage::Ping)
         } else {
             let msg_id = data.slice_ref(first_field);
+            if data.len() < msg_id.len() + 1 {
+                bail!("Invalid message (no room for second field)")
+            }
             let remaining_fields = &data[msg_id.len() + 1..];
             let mut elems = remaining_fields.splitn(2, |&c| c == b' ');
             let (status, reply_payload) = match (elems.next(), elems.next(), elems.next()) {
@@ -199,10 +222,13 @@ impl ApiClient for WsClient {
         msg.extend_from_slice(format!(" {} ", handler).as_bytes());
         msg.extend_from_slice(&payload);
         self.request_tx.send(signature).await.map_err(Error::from)?;
-        self.write
-            .send(Message::Binary(msg))
-            .await
-            .map_err(Error::from)?;
+        {
+            let mut write = self.write.lock().await;
+            write
+                .send(Message::Binary(msg))
+                .await
+                .map_err(Error::from)?;
+        }
 
         match self.response_rx.recv().await {
             None => {

@@ -1,8 +1,10 @@
 use crate::Config;
 use aegislib::client::{register_device, ClientError, DeviceClient, StatusCode};
+use aegislib::command::server::ServerCommand;
 use aegislib::crypto::Keypair;
 use anyhow::Result;
 use std::time::Duration;
+use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 
 /// If we get 403 Forbidden when connecting to the server, the device hasn't been approved by an admin
@@ -20,10 +22,14 @@ async fn register(config: &Config, key: &Keypair) -> Result<()> {
     }
 }
 
-pub async fn connect(config: &Config, mut key: Keypair) -> Result<DeviceClient> {
+pub async fn connect(
+    config: &Config,
+    mut key: Keypair,
+    event_tx: Sender<ServerCommand>,
+) -> Result<DeviceClient> {
     let mut has_registered = false;
     loop {
-        match DeviceClient::new(&config.into(), key, None).await {
+        match DeviceClient::new(&config.into(), key, Some(event_tx.clone())).await {
             Ok(c) => return Ok(c),
             Err((_, ClientError::Other(err))) => return Err(err),
             Err((err_key, ClientError::Http(err))) => {

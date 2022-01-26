@@ -5,6 +5,8 @@ mod device_key;
 use crate::config::Config;
 use anyhow::Result;
 use clap::Arg;
+use tokio::sync::mpsc::channel;
+use tracing::trace;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -13,7 +15,7 @@ async fn main() -> Result<()> {
         std::env::set_var("RUST_LIB_BACKTRACE", "1")
     }
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info,actix_server=warn,sqlx::query=warn")
+        std::env::set_var("RUST_LOG", "info,actix_server=warn")
     }
     tracing_subscriber::fmt::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -41,9 +43,15 @@ async fn main() -> Result<()> {
         "Loaded config"
     );
 
+    let (event_tx, mut event_rx) = channel(1);
     let dev_key = device_key::get_or_create_keys(config.device_key_path.as_ref())?;
-    let client = client::connect(config, dev_key).await?;
+    let _client = client::connect(config, dev_key, event_tx).await?;
     tracing::info!("Connected to server websocket");
+
+    while let Some(event) = event_rx.recv().await {
+        trace!("Received server event: {:?}", event);
+        // TODO: Handle events
+    }
 
     Ok(())
 }
