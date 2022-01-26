@@ -2,6 +2,7 @@ package net.alacrem.aegis.ui.main
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,7 +21,12 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.alacrem.aegis.ROOT_KEYS_FILE
+import net.alacrem.aegis.TAG
 import net.alacrem.aegis.ui.DeviceSettingsActivity
+import net.alacrem.aegis.ui.login.LoginActivity
+import uniffi.client.FfiException
+import java.io.File
 
 
 /**
@@ -49,20 +55,30 @@ class DeviceListFragment : Fragment() {
     private fun loadDeviceListAsync() {
         binding.swipeContainer.isRefreshing = true
         lifecycleScope.launch(Dispatchers.IO) {
-            val client = AdminClientFfi(defaultClientConfig(), keys)
-            if (kind == TabKind.REGISTERED) {
-                val devList = client.listRegistered()
-                withContext(Dispatchers.Main) {
-                    if (adapter != null)
-                        (adapter as DeviceItemAdapter).updateContents(devList)
-                    binding.swipeContainer.isRefreshing = false
+            try {
+                val client = AdminClientFfi(defaultClientConfig(), keys)
+                if (kind == TabKind.REGISTERED) {
+                        val devList = client.listRegistered()
+                        withContext(Dispatchers.Main) {
+                            if (adapter != null)
+                                (adapter as DeviceItemAdapter).updateContents(devList)
+                            binding.swipeContainer.isRefreshing = false
+                        }
+                } else if (kind == TabKind.PENDING) {
+                    val devList = client.listPending()
+                    withContext(Dispatchers.Main) {
+                        if (adapter != null)
+                            (adapter as PendingDeviceItemAdapter).updateContents(devList)
+                        binding.swipeContainer.isRefreshing = false
+                    }
                 }
-            } else if (kind == TabKind.PENDING) {
-                val devList = client.listPending()
-                withContext(Dispatchers.Main) {
-                    if (adapter != null)
-                        (adapter as PendingDeviceItemAdapter).updateContents(devList)
-                    binding.swipeContainer.isRefreshing = false
+            } catch (e: FfiException) {
+                if (e.message?.contains("HTTP error 403") == true) {
+                    Log.e(TAG, "Caught FFI HTTP 403 exception, deleting saved keys")
+                    val context = requireContext()
+                    File(context.filesDir, ROOT_KEYS_FILE).delete()
+                    startActivity(Intent(context, LoginActivity::class.java))
+                    activity?.finish()
                 }
             }
         }
