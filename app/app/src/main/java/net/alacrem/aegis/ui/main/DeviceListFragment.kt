@@ -34,8 +34,7 @@ import java.io.File
  * Fragments should have a default constructor, otherwise we may crash at runtime
  */
 @ExperimentalUnsignedTypes
-class DeviceListFragment : Fragment() {
-
+class DeviceListFragment(val parent: SectionsPagerAdapter) : Fragment() {
     private lateinit var devicePageViewModel: DevicePageViewModel
     private lateinit var kind: TabKind
     private lateinit var keys: RootKeys
@@ -96,6 +95,22 @@ class DeviceListFragment : Fragment() {
         Toast.makeText(context, name, Toast.LENGTH_SHORT).show()
     }
 
+    private fun onPendingConfirmClicked(name: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val client = AdminClientFfi(defaultClientConfig(), keys)
+            client.confirmPending(name)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Confirmed device '$name'", Toast.LENGTH_SHORT).show()
+                loadDeviceListAsync()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadDeviceListAsync()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -108,7 +123,7 @@ class DeviceListFragment : Fragment() {
             adapter = DeviceItemAdapter(::onDeviceClicked)
         } else if (kind == TabKind.PENDING) {
             binding.sectionLabel.text = getString(R.string.label_pending_dev)
-            adapter = PendingDeviceItemAdapter(::onPendingClicked)
+            adapter = PendingDeviceItemAdapter(::onPendingClicked, ::onPendingConfirmClicked)
         } else {
             throw IllegalArgumentException("Invalid TabKind")
         }
@@ -129,8 +144,8 @@ class DeviceListFragment : Fragment() {
         private const val ARG_KEYS = "root_keys"
 
         @JvmStatic
-        fun newInstance(kind: TabKind, keys: RootKeys): DeviceListFragment {
-            return DeviceListFragment().apply {
+        fun newInstance(parent: SectionsPagerAdapter, kind: TabKind, keys: RootKeys): DeviceListFragment {
+            return DeviceListFragment(parent).apply {
                 arguments = Bundle().apply {
                     putInt(ARG_KIND_IDX, kind.ordinal)
                     putByteArray(ARG_KEYS, keys.toBytes().toUByteArray().toByteArray())

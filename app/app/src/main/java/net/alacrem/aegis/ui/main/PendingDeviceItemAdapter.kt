@@ -10,7 +10,7 @@ import net.alacrem.aegis.R
 import uniffi.client.PendingDevice
 import uniffi.client.RegisteredDevice
 
-class PendingDeviceItemAdapter(private val onClick: (devName: String) -> Unit) : RecyclerView.Adapter<PendingDeviceItemAdapter.ViewHolder>() {
+class PendingDeviceItemAdapter(private val onClick: (devName: String) -> Unit, private val onConfirmClick: (devName: String) -> Unit) : RecyclerView.Adapter<PendingDeviceItemAdapter.ViewHolder>() {
     private var devices: List<PendingDevice> = ArrayList()
 
     // Provide a direct reference to each of the views within a data item
@@ -19,11 +19,17 @@ class PendingDeviceItemAdapter(private val onClick: (devName: String) -> Unit) :
         // Your holder should contain and initialize a member variable
         // for any view that will be set as you render a row
         val nameTextView = itemView.findViewById<TextView>(R.id.dev_name)
+        val confirmBtn = itemView.findViewById<TextView>(R.id.confirm_btn)
 
         init {
             itemView.setOnClickListener {
                 if (adapterPosition != RecyclerView.NO_POSITION) {
                     onClick(nameTextView.text.toString())
+                }
+            }
+            confirmBtn.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    onConfirmClick(nameTextView.text.toString())
                 }
             }
         }
@@ -39,7 +45,7 @@ class PendingDeviceItemAdapter(private val onClick: (devName: String) -> Unit) :
         val context = parent.context
         val inflater = LayoutInflater.from(context)
         // Inflate the custom layout
-        val view = inflater.inflate(R.layout.item_device, parent, false)
+        val view = inflater.inflate(R.layout.item_pending_device, parent, false)
         // Return a new holder instance
         return ViewHolder(view)
     }
