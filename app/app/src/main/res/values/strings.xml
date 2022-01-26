@@ -21,4 +21,5 @@
     <string name="lock_section">Lock status</string>
     <string name="device_name_placeholder">Device name</string>
     <string name="confirm">Confirm</string>
+    <string name="device_management">Device management</string>
 </resources>

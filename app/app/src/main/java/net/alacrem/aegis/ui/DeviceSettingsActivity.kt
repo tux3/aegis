@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.alacrem.aegis.ClientBuilder
 import net.alacrem.aegis.defaultClientConfig
+import net.alacrem.aegis.ui.main.DeviceItemAdapter
 import uniffi.client.*
 import java.lang.IllegalArgumentException
 
@@ -53,6 +54,18 @@ class DeviceSettingsActivity : AppCompatActivity() {
         }
         binding.unlockBtn.setOnClickListener {
             updateStatusSync(SetStatusArg(deviceName, vtLocked = false, sshLocked = false))
+        }
+        binding.unlinkBtn.setOnClickListener {
+            disableUi()
+            binding.settingsLoading.visibility = View.VISIBLE
+            binding.settingsLoadingBg.visibility = View.VISIBLE
+            lifecycleScope.launch(Dispatchers.IO) {
+                client.deleteRegistered(deviceName)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(applicationContext, "Unlinked device '$deviceName'", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+            }
         }
         refreshStatus()
     }

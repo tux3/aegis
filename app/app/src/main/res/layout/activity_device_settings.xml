@@ -76,6 +76,25 @@
                 android:minHeight="48dp"
                 android:text="@string/lock_ssh"
                 android:duplicateParentState="true"/>
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="8dp"
+                android:text="@string/device_management"
+                android:textAllCaps="false"
+                android:textAppearance="@style/TextAppearance.AppCompat.Title" />
+
+            <Button
+                android:id="@+id/unlink_btn"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_weight="1"
+                android:duplicateParentState="true"
+                android:text="Unlink device" />
         </LinearLayout>
 
         <View
