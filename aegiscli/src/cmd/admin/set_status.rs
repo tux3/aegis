@@ -22,7 +22,7 @@ pub async fn set_status(
 ) -> Result<()> {
     let name = args.value_of("name").unwrap();
     let vt_locked = args.value_of("vt-lock").map(parse_bool).transpose()?;
-    let ssh_locked = args.value_of("vt-lock").map(parse_bool).transpose()?;
+    let ssh_locked = args.value_of("ssh-lock").map(parse_bool).transpose()?;
     let status = client
         .set_status(SetStatusArg {
             dev_name: name.to_owned(),
