@@ -16,14 +16,15 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.alacrem.aegis.ClientBuilder
 import net.alacrem.aegis.defaultClientConfig
 import uniffi.client.*
+import java.lang.IllegalArgumentException
 
 
 @ExperimentalUnsignedTypes
 class DeviceSettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDeviceSettingsBinding
-    private lateinit var keys: RootKeys
     private lateinit var deviceName: String
     private lateinit var client: AdminClientFfi
 
@@ -31,30 +32,15 @@ class DeviceSettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        var maybeKeys: RootKeys? = null
-        var maybeDevName: String? = null
-        if (savedInstanceState != null) {
-            maybeDevName = savedInstanceState.getString("device_name")
-            val savedKeyData = savedInstanceState.getByteArray("keys")
-            if (savedKeyData != null) {
-                maybeKeys = RootKeys.fromBytes(savedKeyData.toUByteArray().asList())
-            }
-        }
-        if (intent != null) {
-            maybeDevName = intent.getStringExtra("device_name")
-            val data = intent.getByteArrayExtra("keys")
-            if (data != null)
-                maybeKeys = RootKeys.fromBytes(data.toUByteArray().asList())
-        }
-        if (maybeKeys == null || maybeDevName == null) {
+        val clientBuilder = try {
+            ClientBuilder(savedInstanceState, intent)
+        } catch (e: IllegalArgumentException) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
             return
-        } else {
-            keys = maybeKeys
-            deviceName = maybeDevName
         }
-        client = AdminClientFfi(defaultClientConfig(), keys)
+        deviceName = clientBuilder.deviceName
+        client = clientBuilder.build()
 
         actionBar?.title = "$deviceName device settings"
         supportActionBar?.title = "$deviceName device settings"
