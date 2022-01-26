@@ -1,9 +1,12 @@
 mod client;
 mod config;
 mod device_key;
+mod lock;
 mod module;
+mod run_as;
 
 use crate::config::Config;
+use aegislib::command::server::ServerCommand;
 use anyhow::Result;
 use clap::Arg;
 use nix::unistd::{getpid, ROOT};
@@ -87,12 +90,16 @@ async fn main() -> Result<()> {
 
     let (event_tx, mut event_rx) = channel(1);
     let dev_key = device_key::get_or_create_keys(config.device_key_path.as_ref())?;
-    let _client = client::connect(config, dev_key, event_tx).await?;
+    let mut client = client::connect(config, dev_key, event_tx).await?;
     tracing::info!("Connected to server websocket");
+
+    lock::apply_status(client.status().await?);
 
     while let Some(event) = event_rx.recv().await {
         trace!("Received server event: {:?}", event);
-        // TODO: Handle events
+        match event {
+            ServerCommand::StatusUpdate(status) => lock::apply_status(status),
+        }
     }
 
     Ok(())

@@ -1,3 +1,4 @@
+use crate::command::device::StatusReply;
 use derive_more::From;
 use serde::{Deserialize, Serialize};
 use strum_macros::IntoStaticStr;
@@ -6,6 +7,15 @@ use strum_macros::IntoStaticStr;
 pub struct StatusUpdate {
     pub vt_locked: bool,
     pub ssh_locked: bool,
+}
+
+impl From<StatusReply> for StatusUpdate {
+    fn from(reply: StatusReply) -> Self {
+        Self {
+            vt_locked: reply.vt_locked,
+            ssh_locked: reply.ssh_locked,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, From, IntoStaticStr)]

@@ -1,7 +1,7 @@
+use crate::run_as::run_as_root;
 use anyhow::{bail, Result};
 use nix::libc::pid_t;
 use std::path::Path;
-use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
 use tracing::{debug, error, info};
@@ -18,17 +18,7 @@ pub fn read_umh_pid() -> Result<pid_t> {
 }
 
 pub fn try_load() -> Result<()> {
-    let mut cmdline = vec!["sudo", "modprobe", "aegisk"];
-    if nix::unistd::geteuid().is_root() {
-        cmdline.remove(0);
-    }
-    debug!("Running modprobe command: {}", cmdline.join(" "));
-    let cmd = cmdline.remove(0);
-    let args = cmdline;
-    let out = match Command::new(cmd).args(args).output() {
-        Err(e) => bail!(e),
-        Ok(out) => out,
-    };
+    let out = run_as_root(vec!["modprobe", "aegisk"])?;
     if !out.status.success() {
         if !out.stdout.is_empty() {
             error!(
