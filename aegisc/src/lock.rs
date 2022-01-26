@@ -13,5 +13,12 @@ pub fn apply_status(status: impl Into<StatusUpdate>) {
         error!("Failed to unlock SSH: {}", e)
     }
 
-    // TODO: Apply vt_lock status
+    if status.vt_locked {
+        if let Err(e) = std::fs::write("/sys/aegisk/lock_vt", "1") {
+            error!("Failed to set vt_lock file ({})", e);
+        }
+    } else if let Err(e) = std::fs::write("/sys/aegisk/lock_vt", "0") {
+        error!("Failed to unset vt_lock file ({})", e);
+    }
+    // TODO: Apply vt_lock status by hand if module is not working
 }
