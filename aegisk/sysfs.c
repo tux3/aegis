@@ -45,7 +45,7 @@ static ssize_t umh_pid_show(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 static struct kobj_attribute umh_pid_attribute =
-	__ATTR(umh_pid, S_IRUSR, umh_pid_show, NULL);
+	__ATTR(umh_pid, S_IRUSR | S_IRGRP | S_IROTH, umh_pid_show, NULL);
 
 static struct attribute *attrs[] = {
 	&umh_pid_attribute.attr,

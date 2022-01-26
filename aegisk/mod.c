@@ -10,8 +10,8 @@
 static void __cleanup(void)
 {
 	pr_debug("Starting module cleanup\n");
-	aegisk_cleanup_sysfs();
 	stop_aegisc_monitor_thread();
+	aegisk_cleanup_sysfs();
 	pr_debug("Finished module cleanup\n");
 }
 
@@ -34,7 +34,7 @@ static int __init init(void)
 
 	ret = start_aegisc_monitor_thread();
 	if (ret)
-		return ret;
+		goto fail;
 
 	return 0;
 

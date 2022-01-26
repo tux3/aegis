@@ -169,8 +169,8 @@ void stop_aegisc_monitor_thread(void)
 		pr_err("Failed to kill aegisc usermode helper while stopping monitor thread: %pe\n",
 		       ERR_PTR(err));
 
-	BUG_ON(!aegisc_monitor_task);
-	kthread_stop(aegisc_monitor_task); // Not interruptible!
+	if (aegisc_monitor_task)
+		kthread_stop(aegisc_monitor_task); // Not interruptible!
 	aegisc_monitor_task = NULL;
 }
 
