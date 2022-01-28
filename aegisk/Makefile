@@ -22,3 +22,9 @@ install:
 
 quickInstall:
 	cp $(MODULE_OBJ) /lib/modules/`uname -r`/extra
+
+dkmsInstall:
+	sudo mkdir /usr/src/aegisk-1.0/
+	sudo cp Kbuild dkms.conf Makefile *.c *.h /usr/src/aegisk-1.0/
+	dkms add -m aegisk -v 1.0
+
