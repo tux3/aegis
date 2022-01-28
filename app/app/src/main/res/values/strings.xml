@@ -22,4 +22,9 @@
     <string name="device_name_placeholder">Device name</string>
     <string name="confirm">Confirm</string>
     <string name="device_management">Device management</string>
+    <string name="device_information">Device information</string>
+    <string name="unlink_device">Unlink device</string>
+    <string name="loading">Loading...</string>
+    <string name="last_status_change">Last status change</string>
+    <string name="websocket_status">Websocket status</string>
 </resources>

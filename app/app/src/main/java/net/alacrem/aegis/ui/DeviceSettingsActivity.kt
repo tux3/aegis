@@ -21,6 +21,9 @@ import net.alacrem.aegis.defaultClientConfig
 import net.alacrem.aegis.ui.main.DeviceItemAdapter
 import uniffi.client.*
 import java.lang.IllegalArgumentException
+import java.sql.Date
+import java.sql.Timestamp
+import java.text.SimpleDateFormat
 
 
 @ExperimentalUnsignedTypes
@@ -123,6 +126,9 @@ class DeviceSettingsActivity : AppCompatActivity() {
     private fun applyStatusReply(status: StatusReply) {
         setSwitch(binding.vtLock, status.vtLocked)
         setSwitch(binding.sshLock, status.sshLocked)
+        val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
+        binding.lastStatusChangeLbl.text = dateFormat.format(Date(status.updatedAtTimestamp.toLong() * 1000))
+        binding.websocketStatusLbl.text = if (status.isConnected) "Connected" else "Disconnected"
         enableUi()
         binding.settingsLoading.visibility = View.GONE
         binding.settingsLoadingBg.visibility = View.GONE
