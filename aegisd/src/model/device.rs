@@ -202,6 +202,12 @@ pub async fn update_status(
     if let Some(val) = ssh_locked {
         fields.push(format!("ssh_locked = {}", val));
     }
+
+    // Only if we actually updated something, set updated_at
+    if fields.len() != 1 {
+        fields.push("updated_at=timezone('utc', now())".to_owned())
+    }
+
     let fields = fields.join(",");
     let query = &format!(
         "UPDATE device_status SET {} WHERE dev_id = $1 RETURNING *",
