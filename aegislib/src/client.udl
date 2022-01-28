@@ -38,6 +38,7 @@ dictionary SetStatusArg {
 };
 
 dictionary StatusReply {
+    u64 updated_at_timestamp;
     boolean vt_locked;
     boolean ssh_locked;
 };

@@ -73,6 +73,7 @@ pub struct Status {
 impl From<Status> for StatusReply {
     fn from(s: Status) -> Self {
         Self {
+            updated_at_timestamp: s.updated_at.timestamp() as u64,
             vt_locked: s.vt_locked,
             ssh_locked: s.ssh_locked,
         }
