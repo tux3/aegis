@@ -39,6 +39,7 @@ dictionary SetStatusArg {
 
 dictionary StatusReply {
     u64 updated_at_timestamp;
+    boolean is_connected;
     boolean vt_locked;
     boolean ssh_locked;
 };

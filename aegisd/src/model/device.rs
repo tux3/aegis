@@ -1,3 +1,4 @@
+use crate::handler::device::DeviceId;
 use aegislib::command::device::StatusReply;
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -74,6 +75,7 @@ impl From<Status> for StatusReply {
     fn from(s: Status) -> Self {
         Self {
             updated_at_timestamp: s.updated_at.timestamp() as u64,
+            is_connected: crate::ws::ws_for_device(DeviceId(s.dev_id)).is_some(),
             vt_locked: s.vt_locked,
             ssh_locked: s.ssh_locked,
         }
