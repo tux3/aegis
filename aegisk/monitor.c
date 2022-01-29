@@ -106,7 +106,7 @@ static int run_aegisc_umh(void)
 	if (!aegisc_sub_info)
 		return -ENOMEM;
 
-	return call_usermodehelper_exec(aegisc_sub_info, UMH_WAIT_PROC);
+	return call_usermodehelper_exec(aegisc_sub_info, UMH_WAIT_PROC | UMH_KILLABLE);
 }
 
 // kthread_stop() doesn't signal, but it should still interrupt us
