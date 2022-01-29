@@ -21,4 +21,5 @@ pub struct SetStatusArg {
     pub dev_name: String,
     pub vt_locked: Option<bool>,
     pub ssh_locked: Option<bool>,
+    pub draw_decoy: Option<bool>,
 }

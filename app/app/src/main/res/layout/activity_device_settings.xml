@@ -77,6 +77,14 @@
                 android:text="@string/lock_ssh"
                 android:duplicateParentState="true"/>
 
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/draw_decoy"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:duplicateParentState="true"
+                android:minHeight="48dp"
+                android:text="@string/decoy_framebuffer" />
+
             <TextView
                 android:id="@+id/textView"
                 android:layout_width="match_parent"

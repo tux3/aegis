@@ -76,7 +76,11 @@ async fn main() -> Result<()> {
                             arg!(--"vt-lock" <value> "Lock the system onto a blank TTY")
                                 .required(false),
                         )
-                        .arg(arg!(--"ssh-lock" <value> "Disable new SSH logins").required(false)),
+                        .arg(arg!(--"ssh-lock" <value> "Disable new SSH logins").required(false))
+                        .arg(
+                            arg!(--"draw-decoy" <value> "Use decoy TTY framebuffer")
+                                .required(false),
+                        ),
                 ),
         )
         .subcommand(

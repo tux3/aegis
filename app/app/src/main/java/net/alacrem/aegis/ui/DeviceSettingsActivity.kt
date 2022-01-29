@@ -53,10 +53,10 @@ class DeviceSettingsActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.lockBtn.setOnClickListener {
-            updateStatusSync(SetStatusArg(deviceName, vtLocked = true, sshLocked = true))
+            updateStatusSync(SetStatusArg(deviceName, vtLocked = true, sshLocked = true, drawDecoy = null))
         }
         binding.unlockBtn.setOnClickListener {
-            updateStatusSync(SetStatusArg(deviceName, vtLocked = false, sshLocked = false))
+            updateStatusSync(SetStatusArg(deviceName, vtLocked = false, sshLocked = false, drawDecoy = null))
         }
         binding.unlinkBtn.setOnClickListener {
             disableUi()
@@ -74,7 +74,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
     }
 
     private fun refreshStatus() {
-        updateStatusSync(SetStatusArg(deviceName, null, null))
+        updateStatusSync(SetStatusArg(deviceName, null, null, null))
     }
 
     private fun updateStatusSync(statusChange: SetStatusArg) {
@@ -107,25 +107,32 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.vtLock.isEnabled = false
         binding.sshLock.setOnCheckedChangeListener(null)
         binding.sshLock.isEnabled = false
+        binding.drawDecoy.setOnCheckedChangeListener(null)
+        binding.drawDecoy.isEnabled = false
     }
 
     private fun enableUi() {
         binding.lockBtn.isEnabled = true
         binding.unlockBtn.isEnabled = true
         binding.vtLock.setOnCheckedChangeListener { _, isChecked ->
-            updateStatusSync(SetStatusArg(deviceName, vtLocked = isChecked, null))
+            updateStatusSync(SetStatusArg(deviceName, vtLocked = isChecked, null, null))
         }
         binding.vtLock.isEnabled = true
         binding.sshLock.setOnCheckedChangeListener { _, isChecked ->
-            updateStatusSync(SetStatusArg(deviceName, null, sshLocked = isChecked))
+            updateStatusSync(SetStatusArg(deviceName, null, sshLocked = isChecked, null))
         }
         binding.sshLock.isEnabled = true
+        binding.drawDecoy.setOnCheckedChangeListener { _, isChecked ->
+            updateStatusSync(SetStatusArg(deviceName, null, null, drawDecoy = isChecked))
+        }
+        binding.drawDecoy.isEnabled = true
         binding.settingsVlayout.isEnabled = true
     }
 
     private fun applyStatusReply(status: StatusReply) {
         setSwitch(binding.vtLock, status.vtLocked)
         setSwitch(binding.sshLock, status.sshLocked)
+        setSwitch(binding.drawDecoy, status.drawDecoy)
         val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
         binding.lastStatusChangeLbl.text = dateFormat.format(Date(status.updatedAtTimestamp.toLong() * 1000))
         binding.websocketStatusLbl.text = if (status.isConnected) "Connected" else "Disconnected"

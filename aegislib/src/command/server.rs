@@ -7,6 +7,7 @@ use strum_macros::IntoStaticStr;
 pub struct StatusUpdate {
     pub vt_locked: bool,
     pub ssh_locked: bool,
+    pub draw_decoy: bool,
 }
 
 impl From<StatusReply> for StatusUpdate {
@@ -14,6 +15,7 @@ impl From<StatusReply> for StatusUpdate {
         Self {
             vt_locked: reply.vt_locked,
             ssh_locked: reply.ssh_locked,
+            draw_decoy: reply.draw_decoy,
         }
     }
 }

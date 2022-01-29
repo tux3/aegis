@@ -23,11 +23,13 @@ pub async fn set_status(
     let name = args.value_of("name").unwrap();
     let vt_locked = args.value_of("vt-lock").map(parse_bool).transpose()?;
     let ssh_locked = args.value_of("ssh-lock").map(parse_bool).transpose()?;
+    let draw_decoy = args.value_of("draw-decoy").map(parse_bool).transpose()?;
     let status = client
         .set_status(SetStatusArg {
             dev_name: name.to_owned(),
             vt_locked,
             ssh_locked,
+            draw_decoy,
         })
         .await?;
     println!("New device status: {:#?}", status);

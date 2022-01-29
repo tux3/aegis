@@ -9,4 +9,5 @@ pub struct StatusReply {
     pub is_connected: bool,
     pub vt_locked: bool,
     pub ssh_locked: bool,
+    pub draw_decoy: bool,
 }

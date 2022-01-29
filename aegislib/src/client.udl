@@ -35,6 +35,7 @@ dictionary SetStatusArg {
     string dev_name;
     boolean? vt_locked;
     boolean? ssh_locked;
+    boolean? draw_decoy;
 };
 
 dictionary StatusReply {
@@ -42,6 +43,7 @@ dictionary StatusReply {
     boolean is_connected;
     boolean vt_locked;
     boolean ssh_locked;
+    boolean draw_decoy;
 };
 
 interface AdminClientFfi {

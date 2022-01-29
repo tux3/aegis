@@ -69,6 +69,8 @@ pub struct Status {
     vt_locked: bool,
     #[ormx(default)]
     ssh_locked: bool,
+    #[ormx(default)]
+    draw_decoy: bool,
 }
 
 impl From<Status> for StatusReply {
@@ -78,6 +80,7 @@ impl From<Status> for StatusReply {
             is_connected: crate::ws::ws_for_device(DeviceId(s.dev_id)).is_some(),
             vt_locked: s.vt_locked,
             ssh_locked: s.ssh_locked,
+            draw_decoy: s.draw_decoy,
         }
     }
 }
@@ -197,6 +200,7 @@ pub async fn update_status(
     dev_id: i32,
     vt_locked: Option<bool>,
     ssh_locked: Option<bool>,
+    draw_decoy: Option<bool>,
 ) -> Result<Status> {
     let mut fields = vec!["dev_id=dev_id".to_owned()];
     if let Some(val) = vt_locked {
@@ -204,6 +208,9 @@ pub async fn update_status(
     }
     if let Some(val) = ssh_locked {
         fields.push(format!("ssh_locked = {}", val));
+    }
+    if let Some(val) = draw_decoy {
+        fields.push(format!("draw_decoy = {}", val));
     }
 
     // Only if we actually updated something, set updated_at

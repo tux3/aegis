@@ -54,13 +54,15 @@ pub async fn delete_registered_device(db: &mut PgConnection, name: String) -> Re
 #[admin_handler("/set_status")]
 pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<StatusReply> {
     let dev_id = get_dev_id_by_name(db, &arg.dev_name).await?;
-    let status: StatusReply = update_status(db, dev_id, arg.vt_locked, arg.ssh_locked)
-        .await?
-        .into();
+    let status: StatusReply =
+        update_status(db, dev_id, arg.vt_locked, arg.ssh_locked, arg.draw_decoy)
+            .await?
+            .into();
     if let Some(ws) = ws_for_device(DeviceId(dev_id)) {
         let status_update = StatusUpdate {
             ssh_locked: status.ssh_locked,
             vt_locked: status.vt_locked,
+            draw_decoy: status.draw_decoy,
         };
         ws.send(WsServerCommand::from(status_update))
             .await
