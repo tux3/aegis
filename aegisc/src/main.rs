@@ -4,6 +4,7 @@ mod device_key;
 mod lock;
 mod module;
 mod run_as;
+mod webcam;
 
 use crate::config::Config;
 use aegislib::command::server::ServerCommand;

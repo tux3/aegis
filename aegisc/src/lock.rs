@@ -1,4 +1,5 @@
 use crate::run_as::run_as_root;
+use crate::webcam::capture_webcam_picture;
 use aegislib::command::server::StatusUpdate;
 use anyhow::{anyhow, Result};
 use framebuffer::{Framebuffer, KdMode};
@@ -51,7 +52,20 @@ async fn input_event_while_locked() {
     {
         return;
     }
-    info!("Captured input event while locked!");
+
+    match capture_webcam_picture() {
+        Ok(pic) => {
+            let save_location = "/tmp/aegis-capture.jpg";
+            info!(
+                "Input event while locked, saving webcam picture to '{}'!",
+                save_location
+            );
+            let _ = pic.save(save_location);
+        }
+        Err(e) => {
+            warn!("Input event while locked, but failed to capture pic: {}", e)
+        }
+    }
 
     sleep(Duration::from_secs(5)).await;
     INPUT_WHILE_LOCKED_COOLDOWN.store(false, Ordering::Release);

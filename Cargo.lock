@@ -263,6 +263,7 @@ dependencies = [
  "input",
  "lazy_static",
  "nix",
+ "rscam",
  "serde",
  "tokio",
  "toml",
@@ -2210,6 +2211,15 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi",
+]
+
+[[package]]
+name = "rscam"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89056084211cd54924fedf2e2199b906409d1f795cfd8e7e3271061742457018"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
