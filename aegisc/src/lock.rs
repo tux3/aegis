@@ -205,7 +205,8 @@ pub async fn apply_status(status: impl Into<StatusUpdate>) {
         error!("Failed to unlock SSH: {}", e)
     }
 
-    let screenshot = if status.vt_locked && status.draw_decoy {
+    let was_already_locked = INPUT_LOCKED.load(Acquire);
+    let screenshot = if status.vt_locked && status.draw_decoy && !was_already_locked {
         start_watch_input_events().await;
         get_screenshot().ok()
     } else {
@@ -222,7 +223,7 @@ pub async fn apply_status(status: impl Into<StatusUpdate>) {
         error!("Failed to set vt_lock ({})", e);
     }
 
-    if status.vt_locked && status.draw_decoy {
+    if status.vt_locked && status.draw_decoy && !was_already_locked {
         if let Some(screen) = screenshot {
             if let Err(e) = draw_screenshot(screen) {
                 error!("Failed to draw screenshot: {}", e);
