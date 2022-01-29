@@ -1,3 +1,5 @@
+#![feature(result_option_inspect)]
+
 mod client;
 mod config;
 mod device_key;
@@ -5,8 +7,10 @@ mod lock;
 mod module;
 mod run_as;
 mod webcam;
+mod xorg;
 
 use crate::config::Config;
+use crate::xorg::setup_xorg_env_vars;
 use aegislib::command::server::ServerCommand;
 use anyhow::Result;
 use clap::Arg;
@@ -88,6 +92,9 @@ async fn main() -> Result<()> {
     );
 
     check_privs_and_module();
+    if let Err(e) = setup_xorg_env_vars() {
+        error!("Failed to setup Xorg env, screenshots may not work: {}", e);
+    }
 
     let (event_tx, mut event_rx) = channel(1);
     let dev_key = device_key::get_or_create_keys(config.device_key_path.as_ref())?;
