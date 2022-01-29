@@ -60,7 +60,7 @@ pub fn random_sign_keypair() -> ed25519_dalek::Keypair {
     getrandom::getrandom(sk).unwrap();
     let sk = ed25519_dalek::SecretKey::from_bytes(sk).unwrap();
     ed25519_dalek::Keypair {
-        public: (&sk).into(),
+        public: ed25519_dalek::PublicKey::from(&sk),
         secret: sk,
     }
 }
@@ -119,7 +119,7 @@ impl RootKeys {
             ed25519_dalek::SecretKey::from_bytes(&secret_buf[..ed25519_dalek::SECRET_KEY_LENGTH])
                 .unwrap();
         let sig = ed25519_dalek::Keypair {
-            public: (&sig_skey).into(),
+            public: ed25519_dalek::PublicKey::from(&sig_skey),
             secret: sig_skey,
         };
         let enc =
