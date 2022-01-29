@@ -1,28 +1,25 @@
 package net.alacrem.aegis.ui
 
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import net.alacrem.aegis.R
-import net.alacrem.aegis.databinding.ActivityDeviceSettingsBinding
-import net.alacrem.aegis.ui.main.MainActivity
-import androidx.core.app.NavUtils
-
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import androidx.core.app.NavUtils
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.alacrem.aegis.ClientBuilder
-import net.alacrem.aegis.defaultClientConfig
-import net.alacrem.aegis.ui.main.DeviceItemAdapter
+import net.alacrem.aegis.R
+import net.alacrem.aegis.databinding.ActivityDeviceSettingsBinding
+import net.alacrem.aegis.ui.main.MainActivity
 import uniffi.client.*
-import java.lang.IllegalArgumentException
 import java.sql.Date
-import java.sql.Timestamp
 import java.text.SimpleDateFormat
 
 
@@ -59,18 +56,31 @@ class DeviceSettingsActivity : AppCompatActivity() {
             updateStatusSync(SetStatusArg(deviceName, vtLocked = false, sshLocked = false, drawDecoy = null))
         }
         binding.unlinkBtn.setOnClickListener {
-            disableUi()
-            binding.settingsLoading.visibility = View.VISIBLE
-            binding.settingsLoadingBg.visibility = View.VISIBLE
-            lifecycleScope.launch(Dispatchers.IO) {
-                client.deleteRegistered(deviceName)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(applicationContext, "Unlinked device '$deviceName'", Toast.LENGTH_SHORT).show()
-                    finish()
+            AlertDialog.Builder(this)
+                .setTitle("Really unlink?")
+                .setMessage("Do you really want to remove this device?")
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.ok
+                ) { _, _ ->
+                    unlinkDevice()
                 }
-            }
+                .setNegativeButton(android.R.string.cancel, null).show()
+
         }
         refreshStatus()
+    }
+
+    private fun unlinkDevice() {
+        disableUi()
+        binding.settingsLoading.visibility = View.VISIBLE
+        binding.settingsLoadingBg.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            client.deleteRegistered(deviceName)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(applicationContext, "Unlinked device '$deviceName'", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
     }
 
     private fun refreshStatus() {
@@ -109,6 +119,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.sshLock.isEnabled = false
         binding.drawDecoy.setOnCheckedChangeListener(null)
         binding.drawDecoy.isEnabled = false
+        binding.unlinkBtn.isEnabled = false
     }
 
     private fun enableUi() {
@@ -126,6 +137,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
             updateStatusSync(SetStatusArg(deviceName, null, null, drawDecoy = isChecked))
         }
         binding.drawDecoy.isEnabled = true
+        binding.unlinkBtn.isEnabled = true
         binding.settingsVlayout.isEnabled = true
     }
 
