@@ -13,3 +13,6 @@ tracing = "0.1.26"
 tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
 clap = "3.0.0"
 nix = "0.23.1"
+framebuffer = "0.3.1"
+image = "0.23.14"
+captrs = "0.3.1"
