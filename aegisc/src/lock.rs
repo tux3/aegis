@@ -96,6 +96,7 @@ fn set_vt_lock_ioctl(lock: bool) -> Result<()> {
     const REGULAR_VT_NUM: u64 = 7; // Cheap assumption... this is fallback best effort code
     const LOCK_TARGET_VT_NUM: u64 = 25; // Probably unused arbitrary VT
     const VT_ACTIVATE: u64 = 0x5606;
+    const VT_WAITACTIVE: u64 = 0x5607;
     const VT_LOCKSWITCH: u64 = 0x560B;
     const VT_UNLOCKSWITCH: u64 = 0x560C;
 
@@ -109,6 +110,7 @@ fn set_vt_lock_ioctl(lock: bool) -> Result<()> {
             ioctl(tty.as_raw_fd(), VT_UNLOCKSWITCH, 0);
         }
         ioctl(tty.as_raw_fd(), VT_ACTIVATE, target);
+        ioctl(tty.as_raw_fd(), VT_WAITACTIVE, target);
         if lock {
             ioctl(tty.as_raw_fd(), VT_LOCKSWITCH, 0);
         }
