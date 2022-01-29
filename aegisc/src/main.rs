@@ -93,12 +93,12 @@ async fn main() -> Result<()> {
     let mut client = client::connect(config, dev_key, event_tx).await?;
     tracing::info!("Connected to server websocket");
 
-    lock::apply_status(client.status().await?);
+    lock::apply_status(client.status().await?).await;
 
     while let Some(event) = event_rx.recv().await {
         trace!("Received server event: {:?}", event);
         match event {
-            ServerCommand::StatusUpdate(status) => lock::apply_status(status),
+            ServerCommand::StatusUpdate(status) => lock::apply_status(status).await,
         }
     }
 

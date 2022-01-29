@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 aegislib = { path = "../aegislib", features = ["client"] }
 serde = { version = "1.0", features = ["derive"], default-features = false }
-tokio = { version = "1.4", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.4", features = ["macros", "rt-multi-thread", "fs"] }
 toml = "0.5.8"
 anyhow = "1.0.43"
 tracing = "0.1.26"
@@ -16,3 +16,5 @@ nix = "0.23.1"
 framebuffer = "0.3.1"
 image = "0.23.14"
 captrs = "0.3.1"
+input = "0.7.1"
+lazy_static = "1.4.0"

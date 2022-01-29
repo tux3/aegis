@@ -4,11 +4,91 @@ use anyhow::{anyhow, Result};
 use framebuffer::{Framebuffer, KdMode};
 use image::imageops::FilterType;
 use image::{Bgra, ImageBuffer};
-use nix::libc::ioctl;
-use std::fs::File;
+use input::{Event, Libinput, LibinputInterface};
+use lazy_static::lazy_static;
+use nix::libc::{ioctl, O_RDONLY, O_RDWR, O_WRONLY};
+use std::fs::{File, OpenOptions};
 use std::mem::{forget, size_of};
-use std::os::unix::io::AsRawFd;
+use std::os::unix::prelude::*;
+use std::path::Path;
+use std::sync::atomic::Ordering::Acquire;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+use tokio::sync::Mutex;
+use tokio::task::{spawn_blocking, JoinHandle};
+use tokio::time::sleep;
 use tracing::{debug, error, info, trace, warn};
+
+static INPUT_WHILE_LOCKED_COOLDOWN: AtomicBool = AtomicBool::new(false);
+static INPUT_LOCKED: AtomicBool = AtomicBool::new(false);
+lazy_static! {
+    static ref LIBINPUT_JOIN_HANDLE: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
+}
+
+struct InputInterface;
+
+impl LibinputInterface for InputInterface {
+    fn open_restricted(&mut self, path: &Path, flags: i32) -> Result<RawFd, i32> {
+        OpenOptions::new()
+            .custom_flags(flags)
+            .read((flags == O_RDONLY) | (flags & O_RDWR != 0))
+            .write((flags == O_WRONLY) | (flags & O_RDWR != 0))
+            .open(path)
+            .map(|file| file.into_raw_fd())
+            .map_err(|err| err.raw_os_error().unwrap())
+    }
+    fn close_restricted(&mut self, fd: RawFd) {
+        unsafe {
+            File::from_raw_fd(fd);
+        }
+    }
+}
+
+async fn input_event_while_locked() {
+    if INPUT_WHILE_LOCKED_COOLDOWN
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+        .is_err()
+    {
+        return;
+    }
+    info!("Captured input event while locked!");
+
+    sleep(Duration::from_secs(5)).await;
+    INPUT_WHILE_LOCKED_COOLDOWN.store(false, Ordering::Release);
+}
+
+fn watch_input_events() {
+    let mut input = Libinput::new_with_udev(InputInterface);
+    input.udev_assign_seat("seat0").unwrap();
+
+    trace!("Entering input watch event loop");
+    while INPUT_LOCKED.load(Acquire) {
+        input.dispatch().unwrap();
+        for event in &mut input {
+            if matches!(event, Event::Switch(_) | Event::Device(_)) {
+                continue;
+            }
+            trace!("Got libinput event: {:?}", event);
+            if INPUT_LOCKED.load(Acquire) {
+                tokio::spawn(input_event_while_locked());
+            }
+            break;
+        }
+    }
+}
+
+pub async fn start_watch_input_events() {
+    INPUT_LOCKED.store(true, Ordering::Release);
+    let mut input_task = LIBINPUT_JOIN_HANDLE.lock().await;
+    input_task.replace(spawn_blocking(watch_input_events));
+}
+
+pub async fn stop_watch_input_events() {
+    INPUT_LOCKED.store(false, Ordering::Release);
+    if let Some(h) = LIBINPUT_JOIN_HANDLE.lock().await.take() {
+        h.abort();
+    }
+}
 
 fn set_vt_lock_ioctl(lock: bool) -> Result<()> {
     let tty = File::open("/dev/tty0")?; // Requires root (or tty group membership)
@@ -112,7 +192,7 @@ fn draw_screenshot(mut screen: ImageBuffer<Bgra<u8>, Vec<u8>>) -> Result<()> {
     Ok(())
 }
 
-pub fn apply_status(status: impl Into<StatusUpdate>) {
+pub async fn apply_status(status: impl Into<StatusUpdate>) {
     let status = status.into();
     info!("Applying device status: {:?}", status);
     if status.ssh_locked {
@@ -124,11 +204,13 @@ pub fn apply_status(status: impl Into<StatusUpdate>) {
     }
 
     let screenshot = if status.vt_locked && status.draw_decoy {
+        start_watch_input_events().await;
         get_screenshot().ok()
     } else {
         None
     };
     if !status.vt_locked {
+        stop_watch_input_events().await;
         if let Err(e) = Framebuffer::set_kd_mode_ex("/dev/tty25", KdMode::Text) {
             warn!("Failed to switch TTY back to text mode: {}", e)
         }
