@@ -123,7 +123,7 @@ pub fn apply_status(status: impl Into<StatusUpdate>) {
         error!("Failed to unlock SSH: {}", e)
     }
 
-    let screenshot = if status.vt_locked {
+    let screenshot = if status.vt_locked && status.draw_decoy {
         get_screenshot().ok()
     } else {
         None
@@ -138,7 +138,7 @@ pub fn apply_status(status: impl Into<StatusUpdate>) {
         error!("Failed to set vt_lock ({})", e);
     }
 
-    if status.vt_locked {
+    if status.vt_locked && status.draw_decoy {
         if let Some(screen) = screenshot {
             if let Err(e) = draw_screenshot(screen) {
                 error!("Failed to draw screenshot: {}", e);
