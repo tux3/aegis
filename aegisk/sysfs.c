@@ -55,7 +55,7 @@ static ssize_t alert_store(struct kobject *kobj, struct kobj_attribute *attr,
 		return -EPERM;
 	if (count > 1024)
 		return -E2BIG;
-	pr_alert("aegisk: Alert from usermode helper: %s\n", buf);
+	pr_emerg("Alert from usermode helper: %s\n", buf);
 	return count;
 }
 
