@@ -79,10 +79,11 @@ async fn handle_client_events(
     while let Some(event) = client_event_rx.recv().await {
         match event {
             ClientEvent::WebcamPicture(data) => {
+                let size = data.len() as f32 / 1024.0;
                 if let Err(e) = client.store_camera_picture(data).await {
                     error!("Failed to upload webcam picture: {}", e);
                 } else {
-                    info!("Successfully uploaded captured camera picture!")
+                    info!("Successfully uploaded {:.1}kB camera picture!", size)
                 }
             }
         }
