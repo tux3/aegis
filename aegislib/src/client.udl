@@ -61,6 +61,8 @@ interface AdminClientFfi {
     void delete_registered(string name);
     [Throws=FfiError]
     StatusReply set_status(SetStatusArg arg);
+    [Throws=FfiError]
+    void delete_device_camera_pictures(string dev_name);
 };
 
 namespace client {

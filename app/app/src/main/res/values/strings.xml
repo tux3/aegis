@@ -28,4 +28,7 @@
     <string name="last_status_change">Last status change</string>
     <string name="websocket_status">Websocket status</string>
     <string name="decoy_framebuffer">Decoy framebuffer</string>
+    <string name="saved_snapshots">Saved snapshots</string>
+    <string name="show_pictures">Show pictures</string>
+    <string name="clear_storage">Clear storage</string>
 </resources>

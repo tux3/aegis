@@ -67,7 +67,32 @@ class DeviceSettingsActivity : AppCompatActivity() {
                 .setNegativeButton(android.R.string.cancel, null).show()
 
         }
+        binding.clearPicsStorageBtn.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Really erase pictures?")
+                .setMessage("Do you really want to erase stored camera pictures?")
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.ok
+                ) { _, _ ->
+                    clearPictures()
+                }
+                .setNegativeButton(android.R.string.cancel, null).show()
+
+        }
         refreshStatus()
+    }
+
+    private fun clearPictures() {
+        disableUi()
+        binding.settingsLoading.visibility = View.VISIBLE
+        binding.settingsLoadingBg.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            client.deleteDeviceCameraPictures(deviceName)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(applicationContext, "Cleared device pictures storage", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
     }
 
     private fun unlinkDevice() {
@@ -120,6 +145,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.drawDecoy.setOnCheckedChangeListener(null)
         binding.drawDecoy.isEnabled = false
         binding.unlinkBtn.isEnabled = false
+        binding.clearPicsStorageBtn.isEnabled = false
     }
 
     private fun enableUi() {
@@ -138,6 +164,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
         }
         binding.drawDecoy.isEnabled = true
         binding.unlinkBtn.isEnabled = true
+        binding.clearPicsStorageBtn.isEnabled = true
         binding.settingsVlayout.isEnabled = true
     }
 

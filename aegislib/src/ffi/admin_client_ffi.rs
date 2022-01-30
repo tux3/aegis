@@ -54,6 +54,10 @@ impl AdminClientFfi {
     pub fn set_status(&self, arg: SetStatusArg) -> Result<StatusReply, FfiError> {
         self.do_request("set_status", arg)
     }
+
+    pub fn delete_device_camera_pictures(&self, dev_name: String) -> Result<(), FfiError> {
+        self.do_request("delete_device_camera_pictures", dev_name)
+    }
 }
 
 #[cfg(test)]

@@ -83,9 +83,10 @@ pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<Stat
 #[admin_handler("/get_device_camera_pictures")]
 pub async fn get_device_camera_pictures(
     db: &mut PgConnection,
-    device_id: i32,
+    dev_name: String,
 ) -> Result<Vec<StoredCameraPicture>> {
-    Ok(pics::get_for_device(db, device_id)
+    let dev_id = get_dev_id_by_name(db, &dev_name).await?;
+    Ok(pics::get_for_device(db, dev_id)
         .await?
         .into_iter()
         .map(Into::into)
@@ -93,7 +94,8 @@ pub async fn get_device_camera_pictures(
 }
 
 #[admin_handler("/delete_device_camera_pictures")]
-pub async fn delete_device_camera_pictures(db: &mut PgConnection, device_id: i32) -> Result<()> {
-    pics::delete_for_device(db, device_id).await?;
+pub async fn delete_device_camera_pictures(db: &mut PgConnection, dev_name: String) -> Result<()> {
+    let dev_id = get_dev_id_by_name(db, &dev_name).await?;
+    pics::delete_for_device(db, dev_id).await?;
     Ok(())
 }

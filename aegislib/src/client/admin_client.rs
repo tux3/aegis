@@ -57,6 +57,11 @@ impl AdminClient {
     pub async fn set_status(&mut self, arg: SetStatusArg) -> Result<StatusReply> {
         self.do_request("set_status", arg).await
     }
+
+    pub async fn delete_device_camera_pictures(&mut self, dev_name: String) -> Result<()> {
+        self.do_request("delete_device_camera_pictures", dev_name)
+            .await
+    }
 }
 
 #[cfg(test)]
