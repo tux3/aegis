@@ -3,6 +3,7 @@
 mod client;
 mod config;
 mod device_key;
+mod event;
 mod lock;
 mod module;
 mod run_as;
@@ -10,12 +11,14 @@ mod webcam;
 mod xorg;
 
 use crate::config::Config;
+use crate::event::ClientEvent;
 use crate::xorg::setup_xorg_env_vars;
 use aegislib::command::server::ServerCommand;
 use anyhow::Result;
 use clap::Arg;
 use nix::unistd::{getpid, ROOT};
-use tokio::sync::mpsc::channel;
+use tokio::spawn;
+use tokio::sync::mpsc::{channel, Receiver};
 use tracing::{error, info, trace, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -53,6 +56,15 @@ fn check_privs_and_module() {
         } else {
             info!("Successfully loaded module, exiting to let the aegisc usermode helper instance run");
             std::process::exit(0);
+        }
+    }
+}
+
+async fn handle_server_events(mut event_rx: Receiver<ServerCommand>) {
+    while let Some(event) = event_rx.recv().await {
+        trace!("Received server event: {:?}", event);
+        match event {
+            ServerCommand::StatusUpdate(status) => lock::apply_status(status).await,
         }
     }
 }
@@ -96,17 +108,25 @@ async fn main() -> Result<()> {
         error!("Failed to setup Xorg env, screenshots may not work: {}", e);
     }
 
-    let (event_tx, mut event_rx) = channel(1);
+    let (event_tx, event_rx) = channel(1);
     let dev_key = device_key::get_or_create_keys(config.device_key_path.as_ref())?;
     let mut client = client::connect(config, dev_key, event_tx).await?;
     tracing::info!("Connected to server websocket");
 
     lock::apply_status(client.status().await?).await;
+    spawn(handle_server_events(event_rx));
 
-    while let Some(event) = event_rx.recv().await {
-        trace!("Received server event: {:?}", event);
+    let (client_event_tx, mut client_event_rx) = channel(1);
+    lock::register_event_tx(client_event_tx).await;
+    while let Some(event) = client_event_rx.recv().await {
         match event {
-            ServerCommand::StatusUpdate(status) => lock::apply_status(status).await,
+            ClientEvent::WebcamPicture(data) => {
+                if let Err(e) = client.store_camera_picture(data).await {
+                    error!("Failed to upload webcam picture: {}", e);
+                } else {
+                    info!("Successfully uploaded captured camera picture!")
+                }
+            }
         }
     }
 

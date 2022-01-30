@@ -1,5 +1,6 @@
 use crate::run_as::run_as_root;
 use crate::webcam::capture_webcam_picture;
+use crate::ClientEvent;
 use aegislib::command::server::StatusUpdate;
 use anyhow::{anyhow, Result};
 use framebuffer::{Framebuffer, KdMode};
@@ -10,11 +11,13 @@ use lazy_static::lazy_static;
 use nix::libc::{ioctl, O_RDONLY, O_RDWR, O_WRONLY};
 use std::fs::{File, OpenOptions};
 use std::mem::{forget, size_of};
+use std::ops::DerefMut;
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::sync::atomic::Ordering::Acquire;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
+use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::sleep;
@@ -24,6 +27,7 @@ static INPUT_WHILE_LOCKED_COOLDOWN: AtomicBool = AtomicBool::new(false);
 static INPUT_LOCKED: AtomicBool = AtomicBool::new(false);
 lazy_static! {
     static ref LIBINPUT_JOIN_HANDLE: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
+    static ref WEBCAM_PIC_EVENT_TX: Mutex<Option<Sender<ClientEvent>>> = Mutex::new(None);
 }
 
 struct InputInterface;
@@ -61,6 +65,11 @@ async fn input_event_while_locked() {
                 save_location
             );
             let _ = pic.save(save_location);
+            if let Ok(jpeg_data) = tokio::fs::read(save_location).await {
+                if let Some(tx) = WEBCAM_PIC_EVENT_TX.lock().await.deref_mut() {
+                    let _ = tx.send(ClientEvent::WebcamPicture(jpeg_data)).await;
+                }
+            }
         }
         Err(e) => {
             warn!("Input event while locked, but failed to capture pic: {}", e)
@@ -69,6 +78,10 @@ async fn input_event_while_locked() {
 
     sleep(Duration::from_secs(5)).await;
     INPUT_WHILE_LOCKED_COOLDOWN.store(false, Ordering::Release);
+}
+
+pub async fn register_event_tx(sender: Sender<ClientEvent>) {
+    WEBCAM_PIC_EVENT_TX.lock().await.replace(sender);
 }
 
 fn watch_input_events() {
