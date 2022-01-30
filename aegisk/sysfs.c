@@ -2,6 +2,7 @@
 
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
+#include <linux/sched/task.h>
 #include "monitor.h"
 #include "sysfs.h"
 #include "lock.h"
@@ -47,9 +48,24 @@ static ssize_t umh_pid_show(struct kobject *kobj, struct kobj_attribute *attr,
 static struct kobj_attribute umh_pid_attribute =
 	__ATTR(umh_pid, S_IRUSR | S_IRGRP | S_IROTH, umh_pid_show, NULL);
 
+static ssize_t alert_store(struct kobject *kobj, struct kobj_attribute *attr,
+			     const char *buf, size_t count)
+{
+	if (task_tgid_nr(current) != aegisc_umh_get_pid())
+		return -EPERM;
+	if (count > 1024)
+		return -E2BIG;
+	pr_alert("aegisk: Alert from usermode helper: %s\n", buf);
+	return count;
+}
+
+static struct kobj_attribute alert_attribute =
+	__ATTR(alert, S_IWUSR, NULL, alert_store);
+
 static struct attribute *attrs[] = {
 	&umh_pid_attribute.attr,
 	&lock_vt_attribute.attr,
+	&alert_attribute.attr,
 	NULL,
 };
 
