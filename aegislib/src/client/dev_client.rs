@@ -96,7 +96,8 @@ impl DeviceClient {
             Err(e) => return Err(e),
             Ok(r) => r,
         };
-        Ok(bincode::deserialize(&reply).map_err(Error::from)?)
+        Ok(bincode::deserialize(&reply)
+            .map_err(|e| anyhow!("do_request: Failed to deserialize reply: {}", e))?)
     }
 
     pub async fn status(&mut self) -> Result<StatusReply, ClientError> {
