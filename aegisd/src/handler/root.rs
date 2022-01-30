@@ -12,7 +12,7 @@ use chrono::Utc;
 use ed25519_dalek::PublicKey;
 use futures::StreamExt;
 use ormx::Insert;
-use sqlx::{PgPool, Error as SqlxError};
+use sqlx::{Error as SqlxError, PgPool};
 use tracing::debug;
 
 #[get("/health")]
@@ -48,7 +48,7 @@ pub async fn websocket(
     let ws = WsConn::new(db, device_pk, DeviceId(dev_id), remote_addr.clone());
 
     // Upgrade to a websocket
-    let resp = actix_web_actors::ws::start(ws, &req, stream)?;
+    let resp = ws.start(&req, stream)?;
 
     debug!(%remote_addr, "Device websocket connection established");
     Ok(resp)
@@ -83,11 +83,13 @@ pub async fn register(
         name,
         pubkey: pubkey_str,
     }
-        .insert(&mut *conn)
-        .await;
+    .insert(&mut *conn)
+    .await;
     let unique_violation_code = "23505"; // Per https://www.postgresql.org/docs/current/errcodes-appendix.html
     match insert_result {
-        Err(SqlxError::Database(e)) if e.code().as_deref() == Some(unique_violation_code) => return Ok(HttpResponse::Conflict().finish()),
+        Err(SqlxError::Database(e)) if e.code().as_deref() == Some(unique_violation_code) => {
+            return Ok(HttpResponse::Conflict().finish())
+        }
         result => result.map(|_| ())?,
     };
     Ok(HttpResponse::Ok().finish())

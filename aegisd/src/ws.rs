@@ -1,11 +1,15 @@
 use crate::handler::device::{device_handler_iter, DeviceHandlerFn, DeviceId};
+use actix::dev::Stream;
 use actix::{
     Actor, ActorContext, Addr, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
     WrapFuture,
 };
+use actix_http::error::PayloadError;
 use actix_http::ws;
+use actix_http::ws::Codec;
 use actix_web::web::{Bytes, BytesMut};
-use actix_web_actors::ws::WebsocketContext;
+use actix_web::{Error, HttpRequest, HttpResponse};
+use actix_web_actors::ws::{handshake, WebsocketContext};
 use aegislib::command::server::ServerCommand;
 use aegislib::crypto::check_signature;
 use dashmap::DashMap;
@@ -18,6 +22,7 @@ use tracing::{error, info, warn};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const WS_TIMEOUT: Duration = Duration::from_secs(10);
+const WS_PAYLOAD_MAX_SIZE: usize = 2 * 1024 * 1024;
 
 lazy_static::lazy_static! {
     static ref HANDLER_MAP: HashMap<String, DeviceHandlerFn> = {
@@ -79,6 +84,15 @@ impl WsConn {
             last_heartbeat: Instant::now(),
             remote_addr_untrusted,
         }
+    }
+
+    pub fn start<S>(self, req: &HttpRequest, stream: S) -> Result<HttpResponse, Error>
+    where
+        S: Stream<Item = Result<Bytes, PayloadError>> + 'static,
+    {
+        let mut res = handshake(req)?;
+        let codec = Codec::new().max_size(WS_PAYLOAD_MAX_SIZE);
+        Ok(res.streaming(WebsocketContext::with_codec(self, stream, codec)))
     }
 
     fn start_heartbeat(&self, ctx: &mut WebsocketContext<Self>) {
