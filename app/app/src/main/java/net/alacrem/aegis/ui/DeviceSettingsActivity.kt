@@ -1,7 +1,6 @@
 package net.alacrem.aegis.ui
 
 import android.app.AlertDialog
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
@@ -17,6 +16,8 @@ import kotlinx.coroutines.withContext
 import net.alacrem.aegis.ClientBuilder
 import net.alacrem.aegis.R
 import net.alacrem.aegis.databinding.ActivityDeviceSettingsBinding
+import net.alacrem.aegis.ui.main.DevicePicture
+import net.alacrem.aegis.ui.main.DevicePicturesListActivity
 import net.alacrem.aegis.ui.main.MainActivity
 import uniffi.client.*
 import java.sql.Date
@@ -28,6 +29,10 @@ class DeviceSettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDeviceSettingsBinding
     private lateinit var deviceName: String
     private lateinit var client: AdminClientFfi
+
+    companion object {
+        var devicePictures: Array<DevicePicture> = arrayOf()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +84,37 @@ class DeviceSettingsActivity : AppCompatActivity() {
                 .setNegativeButton(android.R.string.cancel, null).show()
 
         }
+        binding.showPicsBtn.setOnClickListener {
+            disableUi()
+            binding.settingsLoading.visibility = View.VISIBLE
+            binding.settingsLoadingBg.visibility = View.VISIBLE
+            val dlToast = Toast.makeText(applicationContext, "Downloading saved pics...", Toast.LENGTH_SHORT)
+            dlToast.show()
+            lifecycleScope.launch(Dispatchers.IO) {
+                val pictures = client.getDeviceCameraPictures(deviceName)
+                withContext(Dispatchers.Main) {
+                    dlToast.cancel()
+                    if (pictures.isEmpty()) {
+                        Toast.makeText(applicationContext, "No pictures in storage", Toast.LENGTH_SHORT).show()
+                    } else {
+                        devicePictures = pictures.map {
+                            val creationDate = Date(it.createdAtTimestamp.toLong() * 1000)
+                            val jpegData = it.jpegData.toUByteArray().toByteArray()
+                            DevicePicture(creationDate, jpegData)
+                        }.toTypedArray()
+                        val picListIntent = Intent(
+                            this@DeviceSettingsActivity,
+                            DevicePicturesListActivity::class.java
+                        )
+                        picListIntent.putExtra("device_name", deviceName)
+                        startActivity(picListIntent)
+                    }
+                    binding.settingsLoading.visibility = View.GONE
+                    binding.settingsLoadingBg.visibility = View.GONE
+                    enableUi()
+                }
+            }
+        }
         refreshStatus()
     }
 
@@ -90,7 +126,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
             client.deleteDeviceCameraPictures(deviceName)
             withContext(Dispatchers.Main) {
                 Toast.makeText(applicationContext, "Cleared device pictures storage", Toast.LENGTH_SHORT).show()
-                finish()
+                refreshStatus()
             }
         }
     }
@@ -146,6 +182,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.drawDecoy.isEnabled = false
         binding.unlinkBtn.isEnabled = false
         binding.clearPicsStorageBtn.isEnabled = false
+        binding.showPicsBtn.isEnabled = false
     }
 
     private fun enableUi() {
@@ -165,6 +202,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.drawDecoy.isEnabled = true
         binding.unlinkBtn.isEnabled = true
         binding.clearPicsStorageBtn.isEnabled = true
+        binding.showPicsBtn.isEnabled = true
         binding.settingsVlayout.isEnabled = true
     }
 

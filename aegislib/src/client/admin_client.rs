@@ -1,5 +1,5 @@
 use crate::client::{ApiClient, ClientConfig, RestClient};
-use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
+use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg, StoredCameraPicture};
 use crate::command::device::StatusReply;
 use crate::crypto::{randomized_signature, RootKeys};
 use anyhow::Result;
@@ -60,6 +60,14 @@ impl AdminClient {
 
     pub async fn delete_device_camera_pictures(&mut self, dev_name: String) -> Result<()> {
         self.do_request("delete_device_camera_pictures", dev_name)
+            .await
+    }
+
+    pub async fn get_device_camera_pictures(
+        &mut self,
+        dev_name: String,
+    ) -> Result<Vec<StoredCameraPicture>> {
+        self.do_request("get_device_camera_pictures", dev_name)
             .await
     }
 }

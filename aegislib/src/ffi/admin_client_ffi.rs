@@ -1,6 +1,6 @@
 use super::FfiError;
 use crate::client::{AdminClient, ClientConfig};
-use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
+use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg, StoredCameraPicture};
 use crate::command::device::StatusReply;
 use crate::crypto::RootKeys;
 use serde::de::DeserializeOwned;
@@ -57,6 +57,13 @@ impl AdminClientFfi {
 
     pub fn delete_device_camera_pictures(&self, dev_name: String) -> Result<(), FfiError> {
         self.do_request("delete_device_camera_pictures", dev_name)
+    }
+
+    pub fn get_device_camera_pictures(
+        &self,
+        dev_name: String,
+    ) -> Result<Vec<StoredCameraPicture>, FfiError> {
+        self.do_request("get_device_camera_pictures", dev_name)
     }
 }
 

@@ -86,11 +86,9 @@ pub async fn get_device_camera_pictures(
     dev_name: String,
 ) -> Result<Vec<StoredCameraPicture>> {
     let dev_id = get_dev_id_by_name(db, &dev_name).await?;
-    Ok(pics::get_for_device(db, dev_id)
-        .await?
-        .into_iter()
-        .map(Into::into)
-        .collect())
+    let pics = pics::get_for_device(db, dev_id).await?;
+    tracing::info!("Sending {} device camera pictures", pics.len());
+    Ok(pics.into_iter().map(Into::into).collect())
 }
 
 #[admin_handler("/delete_device_camera_pictures")]

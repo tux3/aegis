@@ -11,11 +11,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Aegis">
+        <provider
+            android:authorities="net.alacrem.aegis.DevicePictureFileProvider"
+            android:name=".DevicePictureFileProvider"
+            android:enabled="true"
+            android:exported="true"
+            android:grantUriPermissions="true">
+        </provider>
+        <activity
+            android:name=".ui.main.DevicePicturesListActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.DeviceSettingsActivity"
             android:exported="true"
             android:label="@string/title_activity_device_settings"
-            android:parentActivityName=".ui.main.MainActivity"/>
+            android:parentActivityName=".ui.main.MainActivity" />
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="true"

@@ -46,6 +46,11 @@ dictionary StatusReply {
     boolean draw_decoy;
 };
 
+dictionary StoredCameraPicture {
+    u64 created_at_timestamp;
+    sequence<u8> jpeg_data;
+};
+
 interface AdminClientFfi {
     [Throws=FfiError]
     constructor([ByRef] ClientConfig config, [ByRef] RootKeys keys);
@@ -63,6 +68,8 @@ interface AdminClientFfi {
     StatusReply set_status(SetStatusArg arg);
     [Throws=FfiError]
     void delete_device_camera_pictures(string dev_name);
+    [Throws=FfiError]
+    sequence<StoredCameraPicture> get_device_camera_pictures(string dev_name);
 };
 
 namespace client {

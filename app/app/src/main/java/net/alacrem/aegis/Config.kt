@@ -2,7 +2,7 @@ package net.alacrem.aegis
 
 import uniffi.client.ClientConfig
 
-const val TAG = "aegisd"
+const val TAG = "aegis"
 
 const val ROOT_KEYS_FILE = "root.keys"
 
