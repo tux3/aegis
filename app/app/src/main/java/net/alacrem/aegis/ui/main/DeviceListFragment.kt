@@ -127,7 +127,6 @@ class DeviceListFragment(val parent: SectionsPagerAdapter) : Fragment() {
         } else {
             throw IllegalArgumentException("Invalid TabKind")
         }
-        loadDeviceListAsync()
 
         binding.swipeContainer.setOnRefreshListener {
             loadDeviceListAsync()
