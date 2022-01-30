@@ -86,7 +86,6 @@ class DeviceSettingsActivity : AppCompatActivity() {
         }
         binding.showPicsBtn.setOnClickListener {
             disableUi()
-            binding.settingsLoading.visibility = View.VISIBLE
             binding.settingsLoadingBg.visibility = View.VISIBLE
             val dlToast = Toast.makeText(applicationContext, "Downloading saved pics...", Toast.LENGTH_SHORT)
             dlToast.show()
@@ -109,18 +108,19 @@ class DeviceSettingsActivity : AppCompatActivity() {
                         picListIntent.putExtra("device_name", deviceName)
                         startActivity(picListIntent)
                     }
-                    binding.settingsLoading.visibility = View.GONE
                     binding.settingsLoadingBg.visibility = View.GONE
                     enableUi()
                 }
             }
+        }
+        binding.swipeContainer.setOnRefreshListener {
+            refreshStatus()
         }
         refreshStatus()
     }
 
     private fun clearPictures() {
         disableUi()
-        binding.settingsLoading.visibility = View.VISIBLE
         binding.settingsLoadingBg.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             client.deleteDeviceCameraPictures(deviceName)
@@ -133,7 +133,6 @@ class DeviceSettingsActivity : AppCompatActivity() {
 
     private fun unlinkDevice() {
         disableUi()
-        binding.settingsLoading.visibility = View.VISIBLE
         binding.settingsLoadingBg.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             client.deleteRegistered(deviceName)
@@ -150,7 +149,6 @@ class DeviceSettingsActivity : AppCompatActivity() {
 
     private fun updateStatusSync(statusChange: SetStatusArg) {
         disableUi()
-        binding.settingsLoading.visibility = View.VISIBLE
         binding.settingsLoadingBg.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             val newStatus = try {
@@ -158,7 +156,6 @@ class DeviceSettingsActivity : AppCompatActivity() {
             } catch (e: FfiException) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(applicationContext, "Failed to set status", Toast.LENGTH_LONG).show()
-                    binding.settingsLoading.visibility = View.GONE
                     binding.settingsLoadingBg.visibility = View.GONE
                     enableUi()
                 }
@@ -183,6 +180,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.unlinkBtn.isEnabled = false
         binding.clearPicsStorageBtn.isEnabled = false
         binding.showPicsBtn.isEnabled = false
+        binding.swipeContainer.isRefreshing = true
     }
 
     private fun enableUi() {
@@ -204,6 +202,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.clearPicsStorageBtn.isEnabled = true
         binding.showPicsBtn.isEnabled = true
         binding.settingsVlayout.isEnabled = true
+        binding.swipeContainer.isRefreshing = false
     }
 
     private fun applyStatusReply(status: StatusReply) {
@@ -214,7 +213,6 @@ class DeviceSettingsActivity : AppCompatActivity() {
         binding.lastStatusChangeLbl.text = dateFormat.format(Date(status.updatedAtTimestamp.toLong() * 1000))
         binding.websocketStatusLbl.text = if (status.isConnected) "Connected" else "Disconnected"
         enableUi()
-        binding.settingsLoading.visibility = View.GONE
         binding.settingsLoadingBg.visibility = View.GONE
         binding.settingsVlayout.isEnabled = true
     }
