@@ -1,14 +1,18 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/ktime.h>
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/sched/task.h>
+#include <linux/timekeeping.h>
 #include "monitor.h"
 #include "sysfs.h"
 #include "lock.h"
 
 static struct kobject *aegisk_kobj;
 static int lock_vt_flag;
+static u64 insert_time_utc_ns;
+static u64 boot_time_ns;
 
 static ssize_t lock_vt_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
@@ -62,10 +66,20 @@ static ssize_t alert_store(struct kobject *kobj, struct kobj_attribute *attr,
 static struct kobj_attribute alert_attribute =
 	__ATTR(alert, S_IWUSR, NULL, alert_store);
 
+static ssize_t insert_time_show(struct kobject *kobj, struct kobj_attribute *attr,
+				char *buf)
+{
+	return sprintf(buf, "%llu %llu\n", insert_time_utc_ns, boot_time_ns);
+}
+
+static struct kobj_attribute insert_time_attribute =
+	__ATTR(insert_time, S_IRUSR | S_IRGRP | S_IROTH, insert_time_show, NULL);
+
 static struct attribute *attrs[] = {
 	&umh_pid_attribute.attr,
 	&lock_vt_attribute.attr,
 	&alert_attribute.attr,
+	&insert_time_attribute.attr,
 	NULL,
 };
 
@@ -83,6 +97,9 @@ void aegisk_cleanup_sysfs(void)
 
 int aegisk_init_sysfs(void)
 {
+	insert_time_utc_ns = ktime_get_real_ns();
+	boot_time_ns = ktime_get_boottime_ns();
+
 	aegisk_kobj = kobject_create_and_add("aegisk", NULL);
 	if (!aegisk_kobj)
 		return -ENOMEM;
