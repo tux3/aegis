@@ -59,6 +59,10 @@ async fn input_event_while_locked() {
 
     match capture_webcam_picture() {
         Ok(pic) => {
+            let _ = std::fs::write(
+                "/sys/aegisk/alert",
+                "Detected input event while screen was locked. Webcam picture captured.",
+            );
             let save_location = "/tmp/aegis-capture.jpg";
             info!(
                 "Input event while locked, saving webcam picture to '{}'!",
@@ -72,6 +76,10 @@ async fn input_event_while_locked() {
             }
         }
         Err(e) => {
+            let _ = std::fs::write(
+                "/sys/aegisk/alert",
+                "Detected input event while screen was locked. No webcam picture available.",
+            );
             warn!("Input event while locked, but failed to capture pic: {}", e)
         }
     }
