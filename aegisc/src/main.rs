@@ -13,6 +13,7 @@ mod xorg;
 use crate::config::Config;
 use crate::event::ClientEvent;
 use crate::xorg::setup_xorg_env_vars;
+use aegislib::client::DeviceClient;
 use aegislib::command::server::ServerCommand;
 use anyhow::Result;
 use clap::Arg;
@@ -67,6 +68,27 @@ async fn handle_server_events(mut event_rx: Receiver<ServerCommand>) {
             ServerCommand::StatusUpdate(status) => lock::apply_status(status).await,
         }
     }
+    error!("Server event receiver closed, quitting immediately!");
+    std::process::exit(1);
+}
+
+async fn handle_client_events(
+    mut client: DeviceClient,
+    mut client_event_rx: Receiver<ClientEvent>,
+) {
+    while let Some(event) = client_event_rx.recv().await {
+        match event {
+            ClientEvent::WebcamPicture(data) => {
+                if let Err(e) = client.store_camera_picture(data).await {
+                    error!("Failed to upload webcam picture: {}", e);
+                } else {
+                    info!("Successfully uploaded captured camera picture!")
+                }
+            }
+        }
+    }
+    error!("CLient event receiver closed, quitting immediately!");
+    std::process::exit(1);
 }
 
 #[tokio::main]
@@ -116,19 +138,9 @@ async fn main() -> Result<()> {
     lock::apply_status(client.status().await?).await;
     spawn(handle_server_events(event_rx));
 
-    let (client_event_tx, mut client_event_rx) = channel(1);
+    let (client_event_tx, client_event_rx) = channel(1);
     lock::register_event_tx(client_event_tx).await;
-    while let Some(event) = client_event_rx.recv().await {
-        match event {
-            ClientEvent::WebcamPicture(data) => {
-                if let Err(e) = client.store_camera_picture(data).await {
-                    error!("Failed to upload webcam picture: {}", e);
-                } else {
-                    info!("Successfully uploaded captured camera picture!")
-                }
-            }
-        }
-    }
+    handle_client_events(client, client_event_rx).await;
 
     Ok(())
 }

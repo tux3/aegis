@@ -2,7 +2,7 @@ use crate::Config;
 use aegislib::client::{register_device, ClientError, DeviceClient, StatusCode};
 use aegislib::command::server::ServerCommand;
 use aegislib::crypto::Keypair;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
@@ -32,6 +32,7 @@ pub async fn connect(
         match DeviceClient::new(&config.into(), key, Some(event_tx.clone())).await {
             Ok(c) => return Ok(c),
             Err((_, ClientError::Other(err))) => return Err(err),
+            Err((_, e @ ClientError::WebsocketDisconnected(_))) => bail!(e),
             Err((err_key, ClientError::Http(err))) => {
                 if err.code == StatusCode::FORBIDDEN {
                     if !has_registered {

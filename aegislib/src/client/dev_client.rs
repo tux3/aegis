@@ -6,11 +6,14 @@ use anyhow::{anyhow, Error};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tokio::sync::mpsc::Sender;
+use tracing::error;
 
 pub struct DeviceClient {
     client: Box<dyn ApiClient>,
     api_base: String,
+    config: ClientConfig,
     key: ed25519_dalek::Keypair,
+    event_tx: Option<Sender<ServerCommand>>,
 }
 
 impl DeviceClient {
@@ -25,24 +28,34 @@ impl DeviceClient {
         } else {
             String::new()
         };
-        let client: Box<dyn ApiClient> = if config.use_rest {
-            if event_tx.is_some() {
-                return Err((
-                    key,
-                    anyhow!("Cannot receive events if config.use_rest is true").into(),
-                ));
-            }
-            Box::new(RestClient::new_client(config).await)
-        } else {
-            match WsClient::new_device_client(config, &key, event_tx).await {
-                Err(e) => return Err((key, e)),
-                Ok(c) => Box::new(c),
-            }
+        let client = match Self::build_client(config, &key, event_tx.clone()).await {
+            Ok(c) => c,
+            Err(e) => return Err((key, e)),
         };
         Ok(DeviceClient {
             client,
             api_base,
+            config: config.to_owned(),
             key,
+            event_tx,
+        })
+    }
+
+    async fn build_client(
+        config: &ClientConfig,
+        key: &ed25519_dalek::Keypair,
+        event_tx: Option<Sender<ServerCommand>>,
+    ) -> Result<Box<dyn ApiClient>, ClientError> {
+        Ok(if config.use_rest {
+            if event_tx.is_some() {
+                return Err(anyhow!("Cannot receive events if config.use_rest is true").into());
+            }
+            Box::new(RestClient::new_client(config).await)
+        } else {
+            match WsClient::new_device_client(config, key, event_tx).await {
+                Err(e) => return Err(e),
+                Ok(c) => Box::new(c),
+            }
         })
     }
 
@@ -54,7 +67,33 @@ impl DeviceClient {
         let route = format!("{}{}", &self.api_base, route);
         let payload = bincode::serialize(&arg).map_err(Error::from)?;
         let signature = randomized_signature(&self.key, route.as_bytes(), &payload);
-        let reply = self.client.request(&route, &signature, payload).await?;
+        let reply = match self
+            .client
+            .request(&route, &signature, payload.clone())
+            .await
+        {
+            Err(ClientError::WebsocketDisconnected(e)) => {
+                error!("do_request: Websocket disconnected ({}), retrying once", e);
+                self.client =
+                    Self::build_client(&self.config, &self.key, self.event_tx.clone()).await?;
+
+                match self.client.request(&route, &signature, payload).await {
+                    Err(ClientError::WebsocketDisconnected(e)) => {
+                        self.client =
+                            Self::build_client(&self.config, &self.key, self.event_tx.clone())
+                                .await?;
+                        return Err(ClientError::WebsocketDisconnected(anyhow!(
+                            "Websocket keeps disconnecting: {}",
+                            e
+                        )));
+                    }
+                    Err(e) => return Err(e),
+                    Ok(r) => r,
+                }
+            }
+            Err(e) => return Err(e),
+            Ok(r) => r,
+        };
         Ok(bincode::deserialize(&reply).map_err(Error::from)?)
     }
 

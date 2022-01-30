@@ -27,6 +27,8 @@ pub struct ClientHttpError {
 pub enum ClientError {
     #[error(transparent)]
     Http(#[from] ClientHttpError),
+    #[error("websocket disconnected: {0}")]
+    WebsocketDisconnected(anyhow::Error),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }

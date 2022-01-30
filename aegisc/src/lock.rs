@@ -145,7 +145,7 @@ fn set_vt_lock_ioctl(lock: bool) -> Result<()> {
     Ok(())
 }
 
-fn set_vt_lock(lock: bool) -> Result<()> {
+pub fn set_vt_lock(lock: bool) -> Result<()> {
     let bool_str = if lock { "1" } else { "0" };
     if let Err(e) = std::fs::write("/sys/aegisk/lock_vt", bool_str) {
         warn!(

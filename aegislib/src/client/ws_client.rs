@@ -1,3 +1,4 @@
+use crate::client::ClientError::WebsocketDisconnected;
 use crate::client::{ApiClient, ClientConfig, ClientError, ClientHttpError};
 use crate::command::server::ServerCommand;
 use anyhow::{anyhow, bail, Error, Result};
@@ -105,7 +106,6 @@ impl WsClient {
                     if let Some(event_tx) = &event_tx {
                         if let Err(e) = event_tx.send(cmd).await {
                             error!("WsClient::recv_message: Failed to send server cmd: {}", e);
-                            return;
                         }
                     }
                 }
@@ -129,7 +129,10 @@ impl WsClient {
             }
         };
 
-        if let Err(send_err) = response_tx.send(Err(err)).await {
+        if let Err(send_err) = response_tx
+            .send(Err(WebsocketDisconnected(anyhow!(err))))
+            .await
+        {
             error!(
                 "WsClient::recv_message: Channel failed while trying to send error: {}",
                 send_err
@@ -221,7 +224,10 @@ impl ApiClient for WsClient {
         let mut msg = signature.to_vec();
         msg.extend_from_slice(format!(" {} ", handler).as_bytes());
         msg.extend_from_slice(&payload);
-        self.request_tx.send(signature).await.map_err(Error::from)?;
+        self.request_tx
+            .send(signature)
+            .await
+            .map_err(|_| ClientError::WebsocketDisconnected(anyhow!("request channel dropped!")))?;
         {
             let mut write = self.write.lock().await;
             write
@@ -231,9 +237,9 @@ impl ApiClient for WsClient {
         }
 
         match self.response_rx.recv().await {
-            None => {
-                Err(anyhow!("WsClient::request: Receiver task is gone, cannot read reply").into())
-            }
+            None => Err(ClientError::WebsocketDisconnected(anyhow!(
+                "Receiver task is gone, cannot read reply"
+            ))),
             Some(reply) => reply,
         }
     }
