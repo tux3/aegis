@@ -53,9 +53,9 @@ int aegisk_lock_vt(void)
 	previous_vt = fg_console;
 	console_unlock();
 
-	if ((ret = aegis_vt_activate(LOCKED_VT_NUM + 1)))
+	if ((ret = aegis_vt_activate(LOCKED_VT_NUM)))
 		return ret;
-	aegis_vt_wait_active(LOCKED_VT_NUM + 1);
+	aegis_vt_wait_active(LOCKED_VT_NUM);
 	aegis_vt_lockswitch(true);
 
 	return 0;
