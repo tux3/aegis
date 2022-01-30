@@ -23,3 +23,15 @@ pub struct SetStatusArg {
     pub ssh_locked: Option<bool>,
     pub draw_decoy: Option<bool>,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetCameraPicturesArg {
+    pub dev_id: i32,
+    pub pictures: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoredCameraPicture {
+    pub created_at_timestamp: u64,
+    pub jpeg_data: Vec<u8>,
+}

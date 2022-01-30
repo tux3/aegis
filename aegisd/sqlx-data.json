@@ -129,6 +129,28 @@
       ]
     }
   },
+  "179792327f5f80a55b3a6451d5b6fdfcf1f7ad604a7ae00f8f7e9a8d150c8fd2": {
+    "query": "INSERT INTO device_cam_pics (dev_id, created_at, jpeg_data) VALUES ($1, $2, $3) RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Timestamp",
+          "Bytea"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "19851115bf1b1074b958b70663415b28dcf4785c7ac760a5ad5e6894e3405f9e": {
     "query": "SELECT dev_id, updated_at, vt_locked, ssh_locked, draw_decoy FROM device_status WHERE dev_id = $1",
     "describe": {
@@ -173,6 +195,44 @@
       ]
     }
   },
+  "1da93e8600f72c80d11799930356967c907e28693f8b22cc5cc1656dbf97d00d": {
+    "query": "SELECT * FROM device_cam_pics WHERE dev_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 3,
+          "name": "jpeg_data",
+          "type_info": "Bytea"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "381412584595a9f8ad0d5e37224fd64dd180065c045ec603adde4e2735c77ec7": {
     "query": "INSERT INTO device_status (dev_id, updated_at) VALUES ($1, $2) RETURNING vt_locked, ssh_locked, draw_decoy",
     "describe": {
@@ -204,6 +264,21 @@
         false,
         false
       ]
+    }
+  },
+  "397026ca8ff9bf2df3af155e3312e3cd81adfff17020e368893a2d8a5da10d91": {
+    "query": "UPDATE device_cam_pics SET id = $1, created_at = $2, jpeg_data = $3 WHERE dev_id = $4",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Timestamp",
+          "Bytea",
+          "Int4"
+        ]
+      },
+      "nullable": []
     }
   },
   "43a50b51441eb8496d7802b50d30a26625020171f86fd1e6c48f750f0e400622": {
@@ -312,6 +387,44 @@
       },
       "nullable": [
         false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "6500a68e0ec6ee45eeb6263ca75eb8f5fa43ce3b400180c47311d17015d22eb0": {
+    "query": "SELECT id, dev_id, created_at, jpeg_data FROM device_cam_pics WHERE dev_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 3,
+          "name": "jpeg_data",
+          "type_info": "Bytea"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
         false,
         false,
         false,
@@ -446,6 +559,18 @@
       ]
     }
   },
+  "bd94add839a959caad64bc4c233b01d875ca8e516960665745f0aaddb638bdb1": {
+    "query": "DELETE FROM device_cam_pics WHERE dev_id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "c144ca57ce3498c6f4f40b22f9e18f80c559e2b7923e68acea288039e33b4f79": {
     "query": "SELECT id, created_at, name, pubkey, pending FROM device WHERE id = $1",
     "describe": {
@@ -483,6 +608,45 @@
       },
       "nullable": [
         false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "cf5868933e36da40614a3ee1bf6b44d5921f5f41d7519fede4161486c167e1c8": {
+    "query": "SELECT id, dev_id, created_at, jpeg_data FROM device_cam_pics LIMIT $1 OFFSET $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 3,
+          "name": "jpeg_data",
+          "type_info": "Bytea"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
         false,
         false,
         false,
@@ -561,6 +725,42 @@
       },
       "nullable": [
         false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "eecc9359470875a698d3435f9b9f7ef9792004b21fccae83150ec01427b51d6d": {
+    "query": "SELECT id, dev_id, created_at, jpeg_data FROM device_cam_pics",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "dev_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 3,
+          "name": "jpeg_data",
+          "type_info": "Bytea"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
         false,
         false,
         false,

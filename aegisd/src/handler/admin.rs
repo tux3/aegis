@@ -5,10 +5,13 @@ pub use handler_inventory::admin_handler_iter;
 
 use crate::handler::device::DeviceId;
 use crate::model::device::*;
+use crate::model::pics;
 use crate::ws::{ws_for_device, WsServerCommand};
 use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
-use aegislib::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
+use aegislib::command::admin::{
+    PendingDevice, RegisteredDevice, SetStatusArg, StoredCameraPicture,
+};
 use aegislib::command::device::StatusReply;
 use aegislib::command::server::StatusUpdate;
 use anyhow::Result;
@@ -75,4 +78,22 @@ pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<Stat
     }
 
     Ok(status)
+}
+
+#[admin_handler("/get_device_camera_pictures")]
+pub async fn get_device_camera_pictures(
+    db: &mut PgConnection,
+    device_id: i32,
+) -> Result<Vec<StoredCameraPicture>> {
+    Ok(pics::get_for_device(db, device_id)
+        .await?
+        .into_iter()
+        .map(Into::into)
+        .collect())
+}
+
+#[admin_handler("/delete_device_camera_pictures")]
+pub async fn delete_device_camera_pictures(db: &mut PgConnection, device_id: i32) -> Result<()> {
+    pics::delete_for_device(db, device_id).await?;
+    Ok(())
 }

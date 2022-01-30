@@ -11,3 +11,11 @@ pub struct StatusReply {
     pub ssh_locked: bool,
     pub draw_decoy: bool,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoreCameraPictureArg {
+    pub jpeg_data: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoreCameraPictureReply {}
