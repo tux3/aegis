@@ -10,11 +10,11 @@ use crate::ws::{ws_for_device, WsServerCommand};
 use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
 use aegislib::command::admin::{
-    PendingDevice, RegisteredDevice, SetStatusArg, StoredCameraPicture,
+    PendingDevice, RegisteredDevice, SendPowerCommandArg, SetStatusArg, StoredCameraPicture,
 };
 use aegislib::command::device::StatusReply;
-use aegislib::command::server::StatusUpdate;
-use anyhow::Result;
+use aegislib::command::server::{ServerCommand, StatusUpdate};
+use anyhow::{bail, Result};
 use sqlx::PgConnection;
 use tracing::warn;
 
@@ -95,5 +95,27 @@ pub async fn get_device_camera_pictures(
 pub async fn delete_device_camera_pictures(db: &mut PgConnection, dev_name: String) -> Result<()> {
     let dev_id = get_dev_id_by_name(db, &dev_name).await?;
     pics::delete_for_device(db, dev_id).await?;
+    Ok(())
+}
+
+#[admin_handler("/send_power_command")]
+pub async fn send_power_command(db: &mut PgConnection, arg: SendPowerCommandArg) -> Result<()> {
+    let dev_id = get_dev_id_by_name(db, &arg.dev_name).await?;
+    let ws = match ws_for_device(DeviceId(dev_id)) {
+        Some(ws) => ws,
+        None => bail!("Device is not connected"),
+    };
+
+    ws.send(WsServerCommand::from(ServerCommand::PowerCommand(
+        arg.command,
+    )))
+    .await
+    .unwrap_or_else(|e| {
+        warn!(
+            "Failed to send power command to websocket for device {}: {}",
+            dev_id, e
+        );
+    });
+
     Ok(())
 }

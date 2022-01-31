@@ -6,6 +6,7 @@ mod device_key;
 mod event;
 mod lock;
 mod module;
+mod power;
 mod run_as;
 mod webcam;
 mod xorg;
@@ -66,6 +67,7 @@ async fn handle_server_events(mut event_rx: Receiver<ServerCommand>) {
         trace!("Received server event: {:?}", event);
         match event {
             ServerCommand::StatusUpdate(status) => lock::apply_status(status).await,
+            ServerCommand::PowerCommand(cmd) => power::apply_command(cmd).await,
         }
     }
     error!("Server event receiver closed, quitting immediately!");

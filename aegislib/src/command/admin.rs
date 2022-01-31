@@ -1,3 +1,4 @@
+use crate::command::server::PowerCommand;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 
@@ -34,4 +35,10 @@ pub struct GetCameraPicturesArg {
 pub struct StoredCameraPicture {
     pub created_at_timestamp: u64,
     pub jpeg_data: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SendPowerCommandArg {
+    pub dev_name: String,
+    pub command: PowerCommand,
 }

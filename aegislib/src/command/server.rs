@@ -20,8 +20,15 @@ impl From<StatusReply> for StatusUpdate {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum PowerCommand {
+    Reboot,
+    Poweroff,
+}
+
 #[derive(Serialize, Deserialize, Debug, From, IntoStaticStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum ServerCommand {
     StatusUpdate(StatusUpdate),
+    PowerCommand(PowerCommand),
 }
