@@ -11,6 +11,12 @@ all:
 clean:
 	make -C $(KDIR) M=$(MAKEFILE_DIR) clean
 
+dkmsBuild: all
+	test -f /var/lib/shim-signed/mok/MOK.priv && \
+	  sudo /lib/modules/${kernelver}/source/scripts/sign-file sha256 \
+	  /var/lib/shim-signed/mok/MOK.priv /var/lib/shim-signed/mok/MOK.der ${MODULE_OBJ} \
+	  || true
+
 rmmod:
 	lsmod | grep -q "^$(MODULE)\s" && sudo rmmod $(MODULE) || true
 
