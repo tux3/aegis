@@ -5,14 +5,28 @@
 #include <linux/sysfs.h>
 #include <linux/sched/task.h>
 #include <linux/timekeeping.h>
+#include <linux/suspend.h>
+#include <linux/reboot.h>
 #include "monitor.h"
 #include "sysfs.h"
 #include "lock.h"
 
+enum { AEGISK_POWEROFF = 0, AEGISK_REBOOT };
+
+static struct task_struct *aegisk_pm_task;
 static struct kobject *aegisk_kobj;
 static int lock_vt_flag;
 static u64 insert_time_utc_ns;
 static u64 boot_time_ns;
+
+static int aegisk_do_pm_task(void *pm_action)
+{
+	if (pm_action == (void*)AEGISK_POWEROFF)
+		kernel_power_off();
+	else if (pm_action == (void*)AEGISK_REBOOT)
+		kernel_restart(NULL);
+	return -EINVAL;
+}
 
 static ssize_t lock_vt_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
@@ -53,7 +67,7 @@ static struct kobj_attribute umh_pid_attribute =
 	__ATTR(umh_pid, S_IRUSR | S_IRGRP | S_IROTH, umh_pid_show, NULL);
 
 static ssize_t alert_store(struct kobject *kobj, struct kobj_attribute *attr,
-			     const char *buf, size_t count)
+			   const char *buf, size_t count)
 {
 	if (task_tgid_nr(current) != aegisc_umh_get_pid())
 		return -EPERM;
@@ -66,21 +80,49 @@ static ssize_t alert_store(struct kobject *kobj, struct kobj_attribute *attr,
 static struct kobj_attribute alert_attribute =
 	__ATTR(alert, S_IWUSR, NULL, alert_store);
 
-static ssize_t insert_time_show(struct kobject *kobj, struct kobj_attribute *attr,
-				char *buf)
+static ssize_t power_store(struct kobject *kobj, struct kobj_attribute *attr,
+			   const char *buf, size_t count)
+{
+	void* pm_action;
+	if (task_tgid_nr(current) != aegisc_umh_get_pid())
+		return -EPERM;
+	if (aegisk_pm_task)
+		return -EBUSY;
+
+	if (strncmp(buf, "poweroff", count) == 0) {
+		pm_action = (void*)AEGISK_POWEROFF;
+	} else if (strncmp(buf, "reboot", count) == 0) {
+		pm_action = (void*)AEGISK_REBOOT;
+	} else {
+		return -EINVAL;
+	}
+	ksys_sync_helper();
+	aegisk_pm_task = kthread_create(aegisk_do_pm_task, pm_action, "aegisk_pm");
+	if (IS_ERR(aegisk_pm_task)) {
+		return PTR_ERR(aegisk_pm_task);
+	}
+	wake_up_process(aegisk_pm_task);
+	// We don't need to clean this up, we're going to reboot/poweroff...
+
+	return count;
+}
+
+static struct kobj_attribute power_attribute =
+	__ATTR(power, S_IWUSR, NULL, power_store);
+
+static ssize_t insert_time_show(struct kobject *kobj,
+				struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%llu %llu\n", insert_time_utc_ns, boot_time_ns);
 }
 
-static struct kobj_attribute insert_time_attribute =
-	__ATTR(insert_time, S_IRUSR | S_IRGRP | S_IROTH, insert_time_show, NULL);
+static struct kobj_attribute insert_time_attribute = __ATTR(
+	insert_time, S_IRUSR | S_IRGRP | S_IROTH, insert_time_show, NULL);
 
 static struct attribute *attrs[] = {
-	&umh_pid_attribute.attr,
-	&lock_vt_attribute.attr,
-	&alert_attribute.attr,
-	&insert_time_attribute.attr,
-	NULL,
+	&umh_pid_attribute.attr, &lock_vt_attribute.attr,
+	&alert_attribute.attr,	 &insert_time_attribute.attr,
+	&power_attribute.attr,	 NULL,
 };
 
 static struct attribute_group attr_group = {
