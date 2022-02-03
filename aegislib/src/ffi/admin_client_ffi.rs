@@ -1,7 +1,10 @@
 use super::FfiError;
 use crate::client::{AdminClient, ClientConfig};
-use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg, StoredCameraPicture};
+use crate::command::admin::{
+    PendingDevice, RegisteredDevice, SendPowerCommandArg, SetStatusArg, StoredCameraPicture,
+};
 use crate::command::device::StatusReply;
+use crate::command::server::PowerCommand;
 use crate::crypto::RootKeys;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -64,6 +67,16 @@ impl AdminClientFfi {
         dev_name: String,
     ) -> Result<Vec<StoredCameraPicture>, FfiError> {
         self.do_request("get_device_camera_pictures", dev_name)
+    }
+
+    pub fn send_power_command(&self, dev_name: String, cmd: PowerCommand) -> Result<(), FfiError> {
+        self.do_request(
+            "send_power_command",
+            SendPowerCommandArg {
+                dev_name,
+                command: cmd,
+            },
+        )
     }
 }
 

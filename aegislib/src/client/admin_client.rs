@@ -1,6 +1,9 @@
 use crate::client::{ApiClient, ClientConfig, RestClient};
-use crate::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg, StoredCameraPicture};
+use crate::command::admin::{
+    PendingDevice, RegisteredDevice, SendPowerCommandArg, SetStatusArg, StoredCameraPicture,
+};
 use crate::command::device::StatusReply;
+use crate::command::server::PowerCommand;
 use crate::crypto::{randomized_signature, RootKeys};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
@@ -69,6 +72,17 @@ impl AdminClient {
     ) -> Result<Vec<StoredCameraPicture>> {
         self.do_request("get_device_camera_pictures", dev_name)
             .await
+    }
+
+    pub async fn send_power_command(&mut self, dev_name: String, cmd: PowerCommand) -> Result<()> {
+        self.do_request(
+            "send_power_command",
+            SendPowerCommandArg {
+                dev_name,
+                command: cmd,
+            },
+        )
+        .await
     }
 }
 

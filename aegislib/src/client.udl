@@ -51,6 +51,12 @@ dictionary StoredCameraPicture {
     sequence<u8> jpeg_data;
 };
 
+enum PowerCommand {
+  "Reboot",
+  "Poweroff",
+};
+
+
 interface AdminClientFfi {
     [Throws=FfiError]
     constructor([ByRef] ClientConfig config, [ByRef] RootKeys keys);
@@ -70,6 +76,8 @@ interface AdminClientFfi {
     void delete_device_camera_pictures(string dev_name);
     [Throws=FfiError]
     sequence<StoredCameraPicture> get_device_camera_pictures(string dev_name);
+    [Throws=FfiError]
+    void send_power_command(string dev_name, PowerCommand cmd);
 };
 
 namespace client {

@@ -31,4 +31,7 @@
     <string name="saved_snapshots">Saved snapshots</string>
     <string name="show_pictures">Show pictures</string>
     <string name="clear_storage">Clear storage</string>
+    <string name="power">Power</string>
+    <string name="shutdown">Shutdown</string>
+    <string name="reboot">Reboot</string>
 </resources>

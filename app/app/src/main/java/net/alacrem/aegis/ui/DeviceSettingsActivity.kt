@@ -3,8 +3,10 @@ package net.alacrem.aegis.ui
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
@@ -25,10 +27,11 @@ import java.text.SimpleDateFormat
 
 
 @ExperimentalUnsignedTypes
-class DeviceSettingsActivity : AppCompatActivity() {
+class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickListener {
     private lateinit var binding: ActivityDeviceSettingsBinding
     private lateinit var deviceName: String
     private lateinit var client: AdminClientFfi
+    private var deviceConnected: Boolean = false
 
     companion object {
         var devicePictures: Array<DevicePicture> = arrayOf()
@@ -206,6 +209,7 @@ class DeviceSettingsActivity : AppCompatActivity() {
     }
 
     private fun applyStatusReply(status: StatusReply) {
+        deviceConnected = status.isConnected
         setSwitch(binding.vtLock, status.vtLocked)
         setSwitch(binding.sshLock, status.sshLocked)
         setSwitch(binding.drawDecoy, status.drawDecoy)
@@ -229,6 +233,53 @@ class DeviceSettingsActivity : AppCompatActivity() {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    fun showPowerMenu(v: View?) {
+        if (!deviceConnected) {
+            Toast.makeText(applicationContext, "Device is not connected", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val popup = PopupMenu(this, v)
+        popup.setOnMenuItemClickListener(this);
+        val inflater: MenuInflater = popup.getMenuInflater()
+        inflater.inflate(R.menu.device_power_menu, popup.getMenu())
+        popup.show()
+    }
+
+    private fun sendPowerCommand(cmd: PowerCommand) {
+        disableUi()
+        binding.settingsLoadingBg.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                client.sendPowerCommand(deviceName, cmd)
+            } catch (e: FfiException) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(applicationContext, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    binding.settingsLoadingBg.visibility = View.GONE
+                    enableUi()
+                }
+                return@launch
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(applicationContext, "Device power command sent", Toast.LENGTH_SHORT).show()
+                refreshStatus()
+            }
+        }
+    }
+
+    override fun onMenuItemClick(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.device_shutdown -> {
+                sendPowerCommand(PowerCommand.POWEROFF)
+                true
+            }
+            R.id.device_reboot -> {
+                sendPowerCommand(PowerCommand.REBOOT)
+                true
+            }
+            else -> false
         }
     }
 }

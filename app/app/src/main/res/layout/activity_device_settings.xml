@@ -183,6 +183,17 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Title" />
 
             <Button
+                android:id="@+id/power_btn"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_weight="1"
+                android:duplicateParentState="true"
+                android:text="@string/power"
+                android:onClick="showPowerMenu"/>
+
+            <Button
                 android:id="@+id/unlink_btn"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="match_parent"
