@@ -272,11 +272,27 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
     override fun onMenuItemClick(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.device_shutdown -> {
-                sendPowerCommand(PowerCommand.POWEROFF)
+                AlertDialog.Builder(this)
+                    .setTitle("Really poweroff device?")
+                    .setMessage("Do you really want to SHUTDOWN the device?")
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.ok
+                    ) { _, _ ->
+                        sendPowerCommand(PowerCommand.POWEROFF)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null).show()
                 true
             }
             R.id.device_reboot -> {
-                sendPowerCommand(PowerCommand.REBOOT)
+                AlertDialog.Builder(this)
+                    .setTitle("Really reboot device?")
+                    .setMessage("Do you really want to REBOOT the device?")
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.ok
+                    ) { _, _ ->
+                        sendPowerCommand(PowerCommand.REBOOT)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null).show()
                 true
             }
             else -> false
