@@ -90,7 +90,7 @@ async fn handle_client_events(
             }
         }
     }
-    error!("CLient event receiver closed, quitting immediately!");
+    error!("Client event receiver closed, quitting immediately!");
     std::process::exit(1);
 }
 
