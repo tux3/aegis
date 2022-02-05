@@ -5,7 +5,7 @@ use aegislib::command::server::StatusUpdate;
 use anyhow::{anyhow, Result};
 use framebuffer::{Framebuffer, KdMode};
 use image::imageops::FilterType;
-use image::{Bgra, ImageBuffer};
+use image::{ImageBuffer, Rgba};
 use input::{Event, Libinput, LibinputInterface};
 use lazy_static::lazy_static;
 use nix::libc::{ioctl, O_RDONLY, O_RDWR, O_WRONLY};
@@ -165,7 +165,9 @@ pub fn set_vt_lock(lock: bool) -> Result<()> {
     Ok(())
 }
 
-fn get_screenshot() -> Result<ImageBuffer<Bgra<u8>, Vec<u8>>> {
+/// Note that the Rgba is a lie, it's actually Bgra (but that makes no difference for us)
+/// The image crate unfortunately removed support for Bgra in version 0.24
+fn get_screenshot() -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>> {
     let mut capturer = captrs::Capturer::new(0).map_err(|s| anyhow!(s))?;
     let mut frame = capturer
         .capture_frame()
@@ -178,10 +180,10 @@ fn get_screenshot() -> Result<ImageBuffer<Bgra<u8>, Vec<u8>>> {
     let frame =
         unsafe { Vec::from_raw_parts(frame_data as *mut u8, frame_byte_len, frame_byte_cap) };
 
-    Ok(ImageBuffer::<Bgra<u8>, Vec<u8>>::from_raw(geometry.0, geometry.1, frame).unwrap())
+    Ok(ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(geometry.0, geometry.1, frame).unwrap())
 }
 
-fn draw_screenshot(mut screen: ImageBuffer<Bgra<u8>, Vec<u8>>) -> Result<()> {
+fn draw_screenshot(mut screen: ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<()> {
     let mut framebuffer = Framebuffer::new("/dev/fb0")?;
     let mut new_mode = framebuffer.var_screen_info.clone();
     new_mode.xres = screen.width();

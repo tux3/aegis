@@ -14,7 +14,7 @@ tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
 clap = "3.0.0"
 nix = "0.23.1"
 framebuffer = "0.3.1"
-image = "0.23.14"
+image = "0.24.0"
 captrs = "0.3.1"
 input = "0.7.1"
 lazy_static = "1.4.0"

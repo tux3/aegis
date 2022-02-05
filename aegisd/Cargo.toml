@@ -18,9 +18,9 @@ tracing = "0.1.26"
 tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
 clap = "3.0.0"
 actix = "0.12.0"
-actix-web = { version = "4.0.0-beta.21", default-features = false }
+actix-web = { version = "4.0.0-rc.2", features = ["macros", "compress-gzip", "compress-zstd"], default-features = false }
 actix-web-actors = "4.0.0-beta.10"
-actix-http = "3.0.0-beta.19"
+actix-http = "3.0.0-rc.1"
 actix-service = "2.0.0"
 inventory = "0.2.0"
 lazy_static = "1.4.0"
@@ -28,4 +28,4 @@ ed25519-dalek = { version = "1.0.1", features = ["serde"] }
 signature = "1.3.1"
 chrono = "0.4"
 base64 = "0.13.0"
-dashmap = "5.0.0"
+dashmap = "4.0.0"
