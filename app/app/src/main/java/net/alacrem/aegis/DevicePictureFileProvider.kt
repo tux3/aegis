@@ -73,12 +73,11 @@ class DevicePictureFileProvider: ContentProvider() {
         as1: Array<String?>?,
         s1: String?
     ): Cursor {
-        var c: MatrixCursor? = null
         Log.i(TAG, "Provider query projection: "+Arrays.toString(projection))
         val fileLocation: String = context!!.filesDir.absolutePath + File.separator + uri.getLastPathSegment()
         val file = File(fileLocation)
         val time = System.currentTimeMillis()
-        c = MatrixCursor(
+        val c = MatrixCursor(
             arrayOf(
                 "_id",
                 "_data",

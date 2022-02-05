@@ -242,9 +242,8 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
             return
         }
         val popup = PopupMenu(this, v)
-        popup.setOnMenuItemClickListener(this);
-        val inflater: MenuInflater = popup.getMenuInflater()
-        inflater.inflate(R.menu.device_power_menu, popup.getMenu())
+        popup.setOnMenuItemClickListener(this)
+        popup.menuInflater.inflate(R.menu.device_power_menu, popup.menu)
         popup.show()
     }
 

@@ -16,4 +16,5 @@ clean:
 	cd aegisk && make clean
 	cargo clean
 	cd app && ./gradlew clean
+	rm app/app/release/app-release.apk app/app/src/main/jniLibs/* -rf
 
