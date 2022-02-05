@@ -126,7 +126,22 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
         disableUi()
         binding.settingsLoadingBg.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
-            client.deleteDeviceCameraPictures(deviceName)
+            try {
+                client.deleteDeviceCameraPictures(deviceName)
+            } catch (e: FfiException) {
+                if (e.message?.contains("no stored camera pictures") != true) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            applicationContext,
+                            "Failed to clear pictures storage: $e",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        binding.settingsLoadingBg.visibility = View.GONE
+                        enableUi()
+                    }
+                    return@launch
+                }
+            }
             withContext(Dispatchers.Main) {
                 Toast.makeText(applicationContext, "Cleared device pictures storage", Toast.LENGTH_SHORT).show()
                 refreshStatus()
