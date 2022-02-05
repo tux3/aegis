@@ -7,15 +7,19 @@ use bytes::Bytes;
 use futures::stream::{SplitSink, SplitStream, StreamExt};
 use futures::SinkExt;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::net::TcpStream;
 use tokio::spawn;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
+use tokio::time::timeout;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::{Error as WsError, Message};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use tracing::{debug, error, warn};
+
+const PING_TIMEOUT: Duration = Duration::from_secs(10);
 
 struct WsRequestReply {
     msg_id: Bytes,
@@ -44,18 +48,8 @@ impl WsClient {
         let pk = base64::encode_config(&key.public, base64::URL_SAFE_NO_PAD);
         let proto = if config.use_tls { "wss://" } else { "ws://" };
         let ws_url = format!("{}{}/ws/{}", proto, &config.server_addr, pk);
-        let ws_stream = match connect_async(ws_url).await {
-            Err(WsError::Http(err)) => {
-                return Err(ClientHttpError {
-                    code: err.status(),
-                    message: None,
-                }
-                .into())
-            }
-            Err(e) => return Err(ClientError::Other(Error::from(e))),
-            Ok((ws_stream, _)) => ws_stream,
-        };
-        debug!("WebSocket handshake completed");
+        let ws_stream = Self::connect(&ws_url).await?;
+        debug!("WsClient: WebSocket handshake completed");
 
         let (write, read) = ws_stream.split();
         let write = Arc::new(Mutex::new(write));
@@ -65,7 +59,7 @@ impl WsClient {
         {
             let write = write.clone();
             let _ = spawn(async move {
-                Self::recv_messages(read, request_rx, response_tx, event_tx, write).await
+                Self::recv_messages(read, request_rx, response_tx, event_tx, ws_url, write).await
             });
         }
         Ok(WsClient {
@@ -75,17 +69,72 @@ impl WsClient {
         })
     }
 
+    async fn connect(
+        ws_url: &str,
+    ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, ClientError> {
+        Ok(match connect_async(ws_url).await {
+            Err(WsError::Http(err)) => {
+                return Err(ClientHttpError {
+                    code: err.status(),
+                    message: None,
+                }
+                .into())
+            }
+            Err(e) => return Err(ClientError::Other(Error::from(e))),
+            Ok((ws_stream, _)) => ws_stream,
+        })
+    }
+
+    async fn connect_loop_forever(ws_url: &str) -> WebSocketStream<MaybeTlsStream<TcpStream>> {
+        loop {
+            match Self::connect(ws_url).await {
+                Ok(s) => break s,
+                Err(e) => {
+                    warn!("WsClient: Failed to connect to websocket: {}", e);
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                }
+            }
+        }
+    }
+
     async fn recv_messages(
         mut read_stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
         mut request_rx: Receiver<Vec<u8>>,
         response_tx: Sender<Result<Bytes, ClientError>>,
         event_tx: Option<Sender<ServerCommand>>,
+        ws_connect_url: String,
         write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     ) {
+        let mut last_ping_time = Instant::now();
         let mut last_request_id = None;
         let err = loop {
-            let msg = match Self::recv_one_message(&mut read_stream).await {
+            let recv_fut = Self::recv_one_message(&mut read_stream);
+            let recv_fut = timeout(PING_TIMEOUT, recv_fut);
+            let maybe_msg = match recv_fut.await {
+                Ok(m) => m,
+                Err(_) => {
+                    if Instant::now().duration_since(last_ping_time) >= PING_TIMEOUT {
+                        warn!("WsClient: Websocket ping timeout");
+                        let ws_stream = Self::connect_loop_forever(&ws_connect_url).await;
+                        debug!("WsClient: WebSocket reconnected");
+                        let (new_write, new_read) = ws_stream.split();
+                        read_stream = new_read;
+                        *write.lock().await = new_write;
+                    }
+                    continue;
+                }
+            };
+            let msg = match maybe_msg {
                 Ok(msg) => msg,
+                Err(WebsocketDisconnected(e)) => {
+                    error!("WsClient::recv_message: {}", e);
+                    let ws_stream = Self::connect_loop_forever(&ws_connect_url).await;
+                    debug!("WsClient: WebSocket reconnected");
+                    let (new_write, new_read) = ws_stream.split();
+                    read_stream = new_read;
+                    *write.lock().await = new_write;
+                    continue;
+                }
                 Err(e) => break e,
             };
             if let Err(e) = Self::update_request_id(&mut last_request_id, &mut request_rx).await {
@@ -93,13 +142,14 @@ impl WsClient {
             }
             match Self::parse_received_message(msg) {
                 Ok(WsReceivedMessage::Ping) => {
+                    last_ping_time = Instant::now();
                     let mut write = write.lock().await;
                     if let Err(e) = write
                         .send(Message::Pong(b"pong".to_vec()))
                         .await
                         .map_err(Error::from)
                     {
-                        warn!("WsClient::recv_message: Failed answer ping: {}", e);
+                        warn!("WsClient::recv_message: Failed to answer ping: {}", e);
                     }
                 }
                 Ok(WsReceivedMessage::ServerCommand(cmd)) => {
@@ -129,6 +179,7 @@ impl WsClient {
             }
         };
 
+        error!("WsClient::recv_message: disconnected: {}", err);
         if let Err(send_err) = response_tx
             .send(Err(WebsocketDisconnected(anyhow!(err))))
             .await
@@ -161,7 +212,17 @@ impl WsClient {
         read_stream: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     ) -> Result<Bytes, ClientError> {
         let reply = match read_stream.next().await {
-            None => return Err(anyhow!("Connection closed by websocket peer").into()),
+            None => {
+                return Err(WebsocketDisconnected(anyhow!(
+                    "Connection closed by websocket peer (end of stream)"
+                )))
+            }
+            Some(Err(WsError::ConnectionClosed)) => {
+                return Err(WebsocketDisconnected(anyhow!(
+                    "Connection closed by websocket peer"
+                )))
+            }
+            Some(Err(WsError::Io(e))) => return Err(WebsocketDisconnected(anyhow!(e))),
             Some(reply) => Bytes::from(reply.map_err(Error::from)?.into_data()),
         };
         Ok(reply)
