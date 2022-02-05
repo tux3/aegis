@@ -19,7 +19,6 @@
     <string name="lock_all">Lock All</string>
     <string name="unlock_all">Unlock All</string>
     <string name="lock_section">Lock status</string>
-    <string name="device_name_placeholder">Device name</string>
     <string name="confirm">Confirm</string>
     <string name="device_management">Device management</string>
     <string name="device_information">Device information</string>
@@ -34,4 +33,5 @@
     <string name="power">Power</string>
     <string name="shutdown">Shutdown</string>
     <string name="reboot">Reboot</string>
+    <string name="webcam_picture">Webcam picture</string>
 </resources>

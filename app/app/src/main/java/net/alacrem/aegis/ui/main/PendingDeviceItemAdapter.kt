@@ -8,7 +8,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import net.alacrem.aegis.R
 import uniffi.client.PendingDevice
-import uniffi.client.RegisteredDevice
 
 class PendingDeviceItemAdapter(private val onClick: (devName: String) -> Unit, private val onConfirmClick: (devName: String) -> Unit) : RecyclerView.Adapter<PendingDeviceItemAdapter.ViewHolder>() {
     private var devices: List<PendingDevice> = ArrayList()
@@ -19,7 +18,7 @@ class PendingDeviceItemAdapter(private val onClick: (devName: String) -> Unit, p
         // Your holder should contain and initialize a member variable
         // for any view that will be set as you render a row
         val nameTextView = itemView.findViewById<TextView>(R.id.dev_name)
-        val confirmBtn = itemView.findViewById<TextView>(R.id.confirm_btn)
+        private val confirmBtn = itemView.findViewById<TextView>(R.id.confirm_btn)
 
         init {
             itemView.setOnClickListener {

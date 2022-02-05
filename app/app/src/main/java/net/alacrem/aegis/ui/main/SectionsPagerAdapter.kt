@@ -34,7 +34,7 @@ class SectionsPagerAdapter(
         return DeviceListFragment.newInstance(this, TabKind.values()[position], keys)
     }
 
-    override fun getPageTitle(position: Int): CharSequence? {
+    override fun getPageTitle(position: Int): CharSequence {
         return context.resources.getString(TAB_TITLES[position])
     }
 

@@ -19,6 +19,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 
+@ExperimentalUnsignedTypes
 class DevicePicturesListActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDevicePicturesListBinding
 
@@ -49,7 +50,7 @@ class DevicePicturesListActivity : AppCompatActivity() {
                 fos.flush()
                 fos.close()
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to save picture: "+e)
+                Log.e(TAG, "Failed to save picture: $e")
                 Toast.makeText(applicationContext, "Failed to save picture", Toast.LENGTH_LONG).show()
                 return
             }
@@ -57,7 +58,7 @@ class DevicePicturesListActivity : AppCompatActivity() {
             val uri = Uri.parse("content://" + DevicePictureFileProvider.AUTHORITY + File.separator + "img" + File.separator + fileName)
             val intent = Intent()
             intent.action = Intent.ACTION_VIEW
-            intent.type = "image/jpeg";
+            intent.type = "image/jpeg"
             intent.data = uri
             intent.putExtra(Intent.EXTRA_TEXT, "Aegis captured picture")
             intent.putExtra(Intent.EXTRA_STREAM, uri)

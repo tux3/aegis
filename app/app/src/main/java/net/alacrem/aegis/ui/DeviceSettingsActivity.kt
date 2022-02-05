@@ -1,9 +1,9 @@
 package net.alacrem.aegis.ui
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
-import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.widget.PopupMenu
@@ -208,6 +208,7 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
         binding.swipeContainer.isRefreshing = false
     }
 
+    @SuppressLint("SimpleDateFormat")
     private fun applyStatusReply(status: StatusReply) {
         deviceConnected = status.isConnected
         setSwitch(binding.vtLock, status.vtLocked)

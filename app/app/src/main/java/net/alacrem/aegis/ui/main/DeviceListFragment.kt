@@ -35,7 +35,6 @@ import java.io.File
  */
 @ExperimentalUnsignedTypes
 class DeviceListFragment(val parent: SectionsPagerAdapter) : Fragment() {
-    private lateinit var devicePageViewModel: DevicePageViewModel
     private lateinit var kind: TabKind
     private lateinit var keys: RootKeys
     private var _binding: FragmentMainBinding? = null
@@ -114,7 +113,7 @@ class DeviceListFragment(val parent: SectionsPagerAdapter) : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentMainBinding.inflate(inflater, container, false)
         val root = binding.root
 

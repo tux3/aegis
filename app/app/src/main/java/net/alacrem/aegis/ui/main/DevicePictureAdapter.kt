@@ -9,7 +9,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import net.alacrem.aegis.R
-import java.sql.Date
 import java.text.SimpleDateFormat
 
 
@@ -40,6 +39,7 @@ class DevicePictureAdapter(private val pictures: Array<DevicePicture>, private v
     }
 
     // Involves populating data into the item through holder
+    @SuppressLint("SimpleDateFormat")
     override fun onBindViewHolder(viewHolder: DevicePictureAdapter.ViewHolder, position: Int) {
         val pic = pictures[position]
         val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss")

@@ -15,7 +15,7 @@ import java.util.*
 
 class DevicePictureFileProvider: ContentProvider() {
     companion object {
-        val AUTHORITY = "net.alacrem.aegis.DevicePictureFileProvider"
+        const val AUTHORITY = "net.alacrem.aegis.DevicePictureFileProvider"
     }
 
     private var uriMatcher: UriMatcher? = null
@@ -28,11 +28,11 @@ class DevicePictureFileProvider: ContentProvider() {
 
     @Throws(FileNotFoundException::class)
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor? {
-        Log.i(TAG, "Provider openFile called with uri: '" + uri + "'." + uri.getLastPathSegment())
+        Log.i(TAG, "Provider openFile called with uri: '" + uri + "'." + uri.lastPathSegment)
         return when (uriMatcher!!.match(uri)) {
             1 -> {
                 val fileLocation: String =
-                    context!!.filesDir.absolutePath + File.separator + uri.getLastPathSegment()
+                    context!!.filesDir.absolutePath + File.separator + uri.lastPathSegment
                 ParcelFileDescriptor.open(
                     File(fileLocation),
                     ParcelFileDescriptor.MODE_READ_ONLY
@@ -40,7 +40,7 @@ class DevicePictureFileProvider: ContentProvider() {
             }
             else -> {
                 Log.i(TAG, "Unsupported uri: '$uri'.")
-                throw FileNotFoundException("Unsupported uri: " + uri.toString())
+                throw FileNotFoundException("Unsupported uri: $uri")
             }
         }
     }
@@ -74,7 +74,7 @@ class DevicePictureFileProvider: ContentProvider() {
         s1: String?
     ): Cursor {
         Log.i(TAG, "Provider query projection: "+Arrays.toString(projection))
-        val fileLocation: String = context!!.filesDir.absolutePath + File.separator + uri.getLastPathSegment()
+        val fileLocation: String = context!!.filesDir.absolutePath + File.separator + uri.lastPathSegment
         val file = File(fileLocation)
         val time = System.currentTimeMillis()
         val c = MatrixCursor(
@@ -87,7 +87,7 @@ class DevicePictureFileProvider: ContentProvider() {
                 "_display_name"
             )
         )
-        c.addRow(arrayOf<Any>(0, file, 0, "image/jpeg", time, uri.getLastPathSegment()!!))
+        c.addRow(arrayOf<Any>(0, file, 0, "image/jpeg", time, uri.lastPathSegment!!))
         return c
     }
 

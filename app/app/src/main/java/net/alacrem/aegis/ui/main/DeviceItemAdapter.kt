@@ -8,9 +8,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import net.alacrem.aegis.R
 import uniffi.client.RegisteredDevice
-import android.widget.Toast
-
-
 
 
 class DeviceItemAdapter(private val onClick: (devName: String) -> Unit) : RecyclerView.Adapter<DeviceItemAdapter.ViewHolder>() {

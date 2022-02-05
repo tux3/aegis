@@ -2,17 +2,11 @@ package net.alacrem.aegis.ui.main
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import com.google.android.material.tabs.TabLayout
-import androidx.viewpager.widget.ViewPager
 import androidx.appcompat.app.AppCompatActivity
-import net.alacrem.aegis.SERVER_ADDR
-import net.alacrem.aegis.SERVER_USE_TLS
-import net.alacrem.aegis.TAG
+import androidx.viewpager.widget.ViewPager
+import com.google.android.material.tabs.TabLayout
 import net.alacrem.aegis.databinding.ActivityMainBinding
 import net.alacrem.aegis.ui.login.LoginActivity
-import uniffi.client.ClientConfig
-import uniffi.client.FfiException
 import uniffi.client.RootKeys
 
 @ExperimentalUnsignedTypes

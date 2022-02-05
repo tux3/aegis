@@ -2,7 +2,6 @@ package net.alacrem.aegis
 
 import android.content.Intent
 import android.os.Bundle
-import net.alacrem.aegis.ui.main.MainActivity
 import uniffi.client.AdminClientFfi
 import uniffi.client.RootKeys
 

@@ -21,5 +21,4 @@
 
     <style name="Theme.Aegis.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-    <style name="Theme.Aegis.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>
