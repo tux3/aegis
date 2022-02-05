@@ -217,7 +217,6 @@ fn draw_screenshot(mut screen: ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<()> {
     }
 
     debug!("Drawing screenshot at {}x{} with {} bpp", w, h, bytespp);
-    let _ = Framebuffer::set_kd_mode_ex("/dev/tty25", KdMode::Graphics)?;
     for y in 0..h {
         for x in 0..w {
             let idx = (y * line_length + x * bytespp) as usize;
@@ -228,6 +227,7 @@ fn draw_screenshot(mut screen: ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<()> {
         }
     }
     framebuffer.write_frame(&frame);
+    let _ = Framebuffer::set_kd_mode_ex("/dev/tty25", KdMode::Graphics);
     Ok(())
 }
 
