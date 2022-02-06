@@ -23,6 +23,14 @@ pub struct SetStatusArg {
     pub vt_locked: Option<bool>,
     pub ssh_locked: Option<bool>,
     pub draw_decoy: Option<bool>,
+    // NOTE: update is_no_op if you add a field
+}
+
+impl SetStatusArg {
+    pub fn is_no_op(&self) -> bool {
+        // Destructure to cause build error if we add a field
+        self.vt_locked.is_none() && self.ssh_locked.is_none() && self.draw_decoy.is_none()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -80,7 +80,10 @@ async fn input_event_while_locked() {
                 "/sys/aegisk/alert",
                 "Detected input event while screen was locked. No webcam picture available.",
             );
-            warn!("Input event while locked, but failed to capture pic: {}", e)
+            warn!("Input event while locked, but failed to capture pic: {}", e);
+            if let Some(tx) = WEBCAM_PIC_EVENT_TX.lock().await.deref_mut() {
+                let _ = tx.send(ClientEvent::InputWhileLockedWithoutWebcam).await;
+            }
         }
     }
 

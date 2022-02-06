@@ -15,8 +15,10 @@ use crate::config::Config;
 use crate::event::ClientEvent;
 use crate::xorg::setup_xorg_env_vars;
 use aegislib::client::DeviceClient;
+use aegislib::command::device::{DeviceEvent, EventLogLevel};
 use aegislib::command::server::ServerCommand;
 use anyhow::Result;
+use chrono::Utc;
 use clap::Arg;
 use nix::unistd::{getpid, ROOT};
 use tokio::spawn;
@@ -87,6 +89,15 @@ async fn handle_client_events(
                 } else {
                     info!("Successfully uploaded {:.1}kB camera picture!", size)
                 }
+            }
+            ClientEvent::InputWhileLockedWithoutWebcam => {
+                let _ = client
+                    .log_event(DeviceEvent {
+                        timestamp: Utc::now().timestamp() as u64,
+                        level: EventLogLevel::Info,
+                        message: "Detected input while locked (no webcam picture)".to_string(),
+                    })
+                    .await;
             }
         }
     }
