@@ -1,6 +1,6 @@
 use crate::client::{ApiClient, ClientConfig, ClientError, RestClient, WsClient};
 use crate::command::device::{
-    StatusArg, StatusReply, StoreCameraPictureArg, StoreCameraPictureReply,
+    DeviceEvent, StatusArg, StatusReply, StoreCameraPictureArg, StoreCameraPictureReply,
 };
 use crate::command::server::ServerCommand;
 use crate::crypto::randomized_signature;
@@ -110,5 +110,9 @@ impl DeviceClient {
     ) -> Result<StoreCameraPictureReply, ClientError> {
         self.do_request("store_camera_picture", StoreCameraPictureArg { jpeg_data })
             .await
+    }
+
+    pub async fn log_event(&mut self, event: DeviceEvent) -> Result<(), ClientError> {
+        self.do_request("log_event", event).await
     }
 }

@@ -1,5 +1,8 @@
 use crate::run_as::run_as_root;
+use aegislib::client::DeviceClient;
+use aegislib::command::device::{DeviceEvent, EventLogLevel};
 use anyhow::{bail, Result};
+use chrono::NaiveDateTime;
 use nix::libc::pid_t;
 use std::path::Path;
 use std::thread::sleep;
@@ -43,5 +46,49 @@ pub fn try_load() -> Result<()> {
             sleep(Duration::from_millis(250))
         }
         bail!("timed out waiting for sysfs node")
+    }
+}
+
+pub struct InsertTime {
+    pub insert_time: NaiveDateTime,
+    pub boot_to_insert_delay: Duration,
+}
+
+pub fn get_insert_time() -> Result<InsertTime> {
+    let data = std::fs::read_to_string("/sys/aegisk/insert_time")?;
+
+    if let Some((Ok(l), Ok(r))) = data
+        .trim_end()
+        .split_once(' ')
+        .map(|(l, r)| (l.parse::<u64>(), r.parse::<u64>()))
+    {
+        Ok(InsertTime {
+            insert_time: NaiveDateTime::from_timestamp(
+                (l / 1_000_000_000) as i64,
+                (l % 1_000_000_000) as u32,
+            ),
+            boot_to_insert_delay: Duration::from_millis(r / 1_000_000),
+        })
+    } else {
+        bail!("Failed to parse module insert_time")
+    }
+}
+
+pub async fn log_insert_time(client: &mut DeviceClient) {
+    match get_insert_time() {
+        Ok(time) => {
+            let boot_to_insert_delay = humantime::format_duration(time.boot_to_insert_delay);
+            if let Err(e) = client
+                .log_event(DeviceEvent {
+                    timestamp: time.insert_time.timestamp() as u64,
+                    level: EventLogLevel::Info,
+                    message: format!("Module inserted ({} since boot)", boot_to_insert_delay),
+                })
+                .await
+            {
+                error!("Failed to log module insert_time: {}", e)
+            }
+        }
+        Err(e) => error!("Failed to read module insert_time sysfs file: {}", e),
     }
 }

@@ -138,6 +138,7 @@ async fn main() -> Result<()> {
     let mut client = client::connect(config, dev_key, event_tx).await?;
     tracing::info!("Connected to server websocket");
 
+    module::log_insert_time(&mut client).await;
     lock::apply_status(client.status().await?).await;
     spawn(handle_server_events(event_rx));
 
