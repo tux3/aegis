@@ -20,7 +20,7 @@ impl From<StatusReply> for StatusUpdate {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, Debug)]
 pub enum PowerCommand {
     Reboot,
     Poweroff,

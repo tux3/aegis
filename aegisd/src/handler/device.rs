@@ -4,7 +4,8 @@ pub use handler_inventory::{device_handler_iter, DeviceHandlerFn};
 
 use aegisd_handler_macros::device_handler;
 use aegislib::command::device::{
-    DeviceEvent, StatusArg, StatusReply, StoreCameraPictureArg, StoreCameraPictureReply,
+    DeviceEvent, EventLogLevel, StatusArg, StatusReply, StoreCameraPictureArg,
+    StoreCameraPictureReply,
 };
 
 use crate::model::device::get_status;
@@ -34,13 +35,25 @@ pub async fn store_camera_picture(
     dev_id: DeviceId,
     args: StoreCameraPictureArg,
 ) -> Result<StoreCameraPictureReply> {
+    let now = Utc::now().naive_utc();
+    let pic_size_kb = args.jpeg_data.len() / 1024;
     InsertDeviceCameraPicture {
         dev_id: dev_id.0,
-        created_at: Utc::now().naive_utc(),
+        created_at: now,
         jpeg_data: args.jpeg_data,
     }
     .insert(db)
     .await?;
+    let _ = events::insert(
+        db,
+        dev_id.0,
+        DeviceEvent {
+            timestamp: now.timestamp() as u64,
+            level: EventLogLevel::Info,
+            message: format!("Camera picture uploaded ({}kiB)", pic_size_kb),
+        },
+    )
+    .await;
     Ok(StoreCameraPictureReply {})
 }
 

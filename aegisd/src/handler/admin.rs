@@ -12,9 +12,10 @@ use aegisd_handler_macros::admin_handler;
 use aegislib::command::admin::{
     PendingDevice, RegisteredDevice, SendPowerCommandArg, SetStatusArg, StoredCameraPicture,
 };
-use aegislib::command::device::{DeviceEvent, StatusReply};
+use aegislib::command::device::{DeviceEvent, EventLogLevel, StatusReply};
 use aegislib::command::server::{ServerCommand, StatusUpdate};
 use anyhow::{bail, Result};
+use chrono::Utc;
 use sqlx::PgConnection;
 use tracing::warn;
 
@@ -36,6 +37,17 @@ pub async fn delete_pending_device(db: &mut PgConnection, name: String) -> Resul
 #[admin_handler("/confirm_pending_device")]
 pub async fn confirm_pending_device(db: &mut PgConnection, name: String) -> Result<()> {
     confirm_pending(db, &name).await?;
+    let dev_id = get_dev_id_by_name(db, &name).await?;
+    let _ = events::insert(
+        db,
+        dev_id,
+        DeviceEvent {
+            timestamp: Utc::now().naive_utc().timestamp() as u64,
+            level: EventLogLevel::Info,
+            message: "Device confirmed".into(),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -61,6 +73,18 @@ pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<Stat
         update_status(db, dev_id, arg.vt_locked, arg.ssh_locked, arg.draw_decoy)
             .await?
             .into();
+    if !arg.is_no_op() {
+        let _ = events::insert(
+            db,
+            dev_id,
+            DeviceEvent {
+                timestamp: Utc::now().naive_utc().timestamp() as u64,
+                level: EventLogLevel::Info,
+                message: format!("Status updated: {:?}", &status),
+            },
+        )
+        .await;
+    }
     if let Some(ws) = ws_for_device(DeviceId(dev_id)) {
         let status_update = StatusUpdate {
             ssh_locked: status.ssh_locked,
@@ -95,6 +119,16 @@ pub async fn get_device_camera_pictures(
 pub async fn delete_device_camera_pictures(db: &mut PgConnection, dev_name: String) -> Result<()> {
     let dev_id = get_dev_id_by_name(db, &dev_name).await?;
     pics::delete_for_device(db, dev_id).await?;
+    let _ = events::insert(
+        db,
+        dev_id,
+        DeviceEvent {
+            timestamp: Utc::now().naive_utc().timestamp() as u64,
+            level: EventLogLevel::Debug,
+            message: "Deleted stored camera pictures".into(),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -116,6 +150,16 @@ pub async fn send_power_command(db: &mut PgConnection, arg: SendPowerCommandArg)
             dev_id, e
         );
     });
+    let _ = events::insert(
+        db,
+        dev_id,
+        DeviceEvent {
+            timestamp: Utc::now().naive_utc().timestamp() as u64,
+            level: EventLogLevel::Info,
+            message: format!("Sent power command: {:?}", arg.command),
+        },
+    )
+    .await;
 
     Ok(())
 }
