@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 import net.alacrem.aegis.ClientBuilder
 import net.alacrem.aegis.R
 import net.alacrem.aegis.databinding.ActivityDeviceSettingsBinding
+import net.alacrem.aegis.ui.main.DeviceEventsListActivity
 import net.alacrem.aegis.ui.main.DevicePicture
 import net.alacrem.aegis.ui.main.DevicePicturesListActivity
 import net.alacrem.aegis.ui.main.MainActivity
@@ -35,6 +36,7 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
 
     companion object {
         var devicePictures: Array<DevicePicture> = arrayOf()
+        var deviceEvents: Array<DeviceEvent> = arrayOf()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,6 +118,43 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
                 }
             }
         }
+        binding.clearEventsBtn.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Really clear log?")
+                .setMessage("Do you really want to clear the device event log?")
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.ok
+                ) { _, _ ->
+                    clearDeviceEventLog()
+                }
+                .setNegativeButton(android.R.string.cancel, null).show()
+
+        }
+        binding.showEventsBtn.setOnClickListener {
+            disableUi()
+            binding.settingsLoadingBg.visibility = View.VISIBLE
+            val dlToast = Toast.makeText(applicationContext, "Downloading events...", Toast.LENGTH_SHORT)
+            dlToast.show()
+            lifecycleScope.launch(Dispatchers.IO) {
+                val events = client.getDeviceEvents(deviceName)
+                withContext(Dispatchers.Main) {
+                    dlToast.cancel()
+                    if (events.isEmpty()) {
+                        Toast.makeText(applicationContext, "Event log is empty", Toast.LENGTH_SHORT).show()
+                    } else {
+                        deviceEvents = events.toTypedArray()
+                        val eventListIntent = Intent(
+                            this@DeviceSettingsActivity,
+                            DeviceEventsListActivity::class.java
+                        )
+                        eventListIntent.putExtra("device_name", deviceName)
+                        startActivity(eventListIntent)
+                    }
+                    binding.settingsLoadingBg.visibility = View.GONE
+                    enableUi()
+                }
+            }
+        }
         binding.swipeContainer.setOnRefreshListener {
             refreshStatus()
         }
@@ -144,6 +183,33 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
             }
             withContext(Dispatchers.Main) {
                 Toast.makeText(applicationContext, "Cleared device pictures storage", Toast.LENGTH_SHORT).show()
+                refreshStatus()
+            }
+        }
+    }
+
+    private fun clearDeviceEventLog() {
+        disableUi()
+        binding.settingsLoadingBg.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                client.deleteDeviceEvents(deviceName)
+            } catch (e: FfiException) {
+                if (e.message?.contains("no stored events") != true) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            applicationContext,
+                            "Failed to clear event log: $e",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        binding.settingsLoadingBg.visibility = View.GONE
+                        enableUi()
+                    }
+                    return@launch
+                }
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(applicationContext, "Cleared event log", Toast.LENGTH_SHORT).show()
                 refreshStatus()
             }
         }
@@ -198,6 +264,8 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
         binding.unlinkBtn.isEnabled = false
         binding.clearPicsStorageBtn.isEnabled = false
         binding.showPicsBtn.isEnabled = false
+        binding.clearEventsBtn.isEnabled = false
+        binding.showEventsBtn.isEnabled = false
         binding.swipeContainer.isRefreshing = true
     }
 
@@ -219,6 +287,8 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
         binding.unlinkBtn.isEnabled = true
         binding.clearPicsStorageBtn.isEnabled = true
         binding.showPicsBtn.isEnabled = true
+        binding.clearEventsBtn.isEnabled = true
+        binding.showEventsBtn.isEnabled = true
         binding.settingsVlayout.isEnabled = true
         binding.swipeContainer.isRefreshing = false
     }

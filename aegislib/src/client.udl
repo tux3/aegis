@@ -56,6 +56,19 @@ enum PowerCommand {
   "Poweroff",
 };
 
+enum EventLogLevel {
+    "Trace",
+    "Debug",
+    "Info",
+    "Warn",
+    "Error",
+};
+
+dictionary DeviceEvent {
+    u64 timestamp;
+    EventLogLevel level;
+    string message;
+};
 
 interface AdminClientFfi {
     [Throws=FfiError]
@@ -78,6 +91,10 @@ interface AdminClientFfi {
     sequence<StoredCameraPicture> get_device_camera_pictures(string dev_name);
     [Throws=FfiError]
     void send_power_command(string dev_name, PowerCommand cmd);
+    [Throws=FfiError]
+    void delete_device_events(string dev_name);
+    [Throws=FfiError]
+    sequence<DeviceEvent> get_device_events(string dev_name);
 };
 
 namespace client {

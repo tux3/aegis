@@ -3,7 +3,7 @@ use crate::client::{AdminClient, ClientConfig};
 use crate::command::admin::{
     PendingDevice, RegisteredDevice, SendPowerCommandArg, SetStatusArg, StoredCameraPicture,
 };
-use crate::command::device::StatusReply;
+use crate::command::device::{DeviceEvent, StatusReply};
 use crate::command::server::PowerCommand;
 use crate::crypto::RootKeys;
 use serde::de::DeserializeOwned;
@@ -77,6 +77,14 @@ impl AdminClientFfi {
                 command: cmd,
             },
         )
+    }
+
+    pub fn delete_device_events(&self, dev_name: String) -> Result<(), FfiError> {
+        self.do_request("delete_device_events", dev_name)
+    }
+
+    pub fn get_device_events(&self, dev_name: String) -> Result<Vec<DeviceEvent>, FfiError> {
+        self.do_request("get_device_events", dev_name)
     }
 }
 

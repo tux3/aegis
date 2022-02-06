@@ -27,11 +27,13 @@
     <string name="last_status_change">Last status change</string>
     <string name="websocket_status">Websocket status</string>
     <string name="decoy_framebuffer">Decoy framebuffer</string>
-    <string name="saved_snapshots">Saved snapshots</string>
+    <string name="saved_snapshots">Storage</string>
     <string name="show_pictures">Show pictures</string>
-    <string name="clear_storage">Clear storage</string>
+    <string name="clear_pics_storage">Discard pictures</string>
     <string name="power">Power</string>
     <string name="shutdown">Shutdown</string>
     <string name="reboot">Reboot</string>
     <string name="webcam_picture">Webcam picture</string>
+    <string name="show_event_log">Show event log</string>
+    <string name="discard_log">Discard log</string>
 </resources>

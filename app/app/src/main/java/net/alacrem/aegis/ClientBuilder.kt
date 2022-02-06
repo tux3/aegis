@@ -5,6 +5,7 @@ import android.os.Bundle
 import uniffi.client.AdminClientFfi
 import uniffi.client.RootKeys
 
+@ExperimentalUnsignedTypes
 class ClientBuilder(savedState: Bundle?, intent: Intent?) {
     private val keys: RootKeys
     val deviceName: String

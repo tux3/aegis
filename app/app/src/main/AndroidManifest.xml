@@ -19,6 +19,9 @@
             android:grantUriPermissions="true">
         </provider>
         <activity
+            android:name=".ui.main.DeviceEventsListActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.main.DevicePicturesListActivity"
             android:exported="false" />
         <activity

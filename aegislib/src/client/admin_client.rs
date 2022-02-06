@@ -2,7 +2,7 @@ use crate::client::{ApiClient, ClientConfig, RestClient};
 use crate::command::admin::{
     PendingDevice, RegisteredDevice, SendPowerCommandArg, SetStatusArg, StoredCameraPicture,
 };
-use crate::command::device::StatusReply;
+use crate::command::device::{DeviceEvent, StatusReply};
 use crate::command::server::PowerCommand;
 use crate::crypto::{randomized_signature, RootKeys};
 use anyhow::Result;
@@ -83,6 +83,14 @@ impl AdminClient {
             },
         )
         .await
+    }
+
+    pub async fn delete_device_events(&mut self, dev_name: String) -> Result<()> {
+        self.do_request("delete_device_events", dev_name).await
+    }
+
+    pub async fn get_device_events(&mut self, dev_name: String) -> Result<Vec<DeviceEvent>> {
+        self.do_request("get_device_events", dev_name).await
     }
 }
 
