@@ -5,3 +5,8 @@ members = [
     "aegislib",
     "aegisc",
 ]
+
+[profile.release]
+panic = "abort"
+lto = "thin"
+strip = "symbols"
