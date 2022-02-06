@@ -5,14 +5,14 @@ pub use handler_inventory::admin_handler_iter;
 
 use crate::handler::device::DeviceId;
 use crate::model::device::*;
-use crate::model::pics;
+use crate::model::{events, pics};
 use crate::ws::{ws_for_device, WsServerCommand};
 use actix_web::web::Bytes;
 use aegisd_handler_macros::admin_handler;
 use aegislib::command::admin::{
     PendingDevice, RegisteredDevice, SendPowerCommandArg, SetStatusArg, StoredCameraPicture,
 };
-use aegislib::command::device::StatusReply;
+use aegislib::command::device::{DeviceEvent, StatusReply};
 use aegislib::command::server::{ServerCommand, StatusUpdate};
 use anyhow::{bail, Result};
 use sqlx::PgConnection;
@@ -117,5 +117,23 @@ pub async fn send_power_command(db: &mut PgConnection, arg: SendPowerCommandArg)
         );
     });
 
+    Ok(())
+}
+
+#[admin_handler("/get_device_events")]
+pub async fn get_device_events(
+    db: &mut PgConnection,
+    dev_name: String,
+) -> Result<Vec<DeviceEvent>> {
+    let dev_id = get_dev_id_by_name(db, &dev_name).await?;
+    let events = events::get_for_device(db, dev_id).await?;
+    tracing::info!("Sending {} device events", events.len());
+    Ok(events)
+}
+
+#[admin_handler("/delete_device_events")]
+pub async fn delete_device_events(db: &mut PgConnection, dev_name: String) -> Result<()> {
+    let dev_id = get_dev_id_by_name(db, &dev_name).await?;
+    events::delete_for_device(db, dev_id).await?;
     Ok(())
 }

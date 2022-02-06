@@ -19,3 +19,19 @@ pub struct StoreCameraPictureArg {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoreCameraPictureReply {}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum EventLogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct DeviceEvent {
+    pub timestamp: u64,
+    pub level: EventLogLevel,
+    pub message: String,
+}

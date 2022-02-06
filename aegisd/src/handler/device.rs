@@ -4,10 +4,11 @@ pub use handler_inventory::{device_handler_iter, DeviceHandlerFn};
 
 use aegisd_handler_macros::device_handler;
 use aegislib::command::device::{
-    StatusArg, StatusReply, StoreCameraPictureArg, StoreCameraPictureReply,
+    DeviceEvent, StatusArg, StatusReply, StoreCameraPictureArg, StoreCameraPictureReply,
 };
 
 use crate::model::device::get_status;
+use crate::model::events;
 use crate::model::pics::InsertDeviceCameraPicture;
 use actix_web::web::Bytes;
 use anyhow::Result;
@@ -41,4 +42,10 @@ pub async fn store_camera_picture(
     .insert(db)
     .await?;
     Ok(StoreCameraPictureReply {})
+}
+
+#[device_handler("/log_event")]
+pub async fn log_event(db: &mut PgConnection, dev_id: DeviceId, event: DeviceEvent) -> Result<()> {
+    events::insert(db, dev_id.0, event).await?;
+    Ok(())
 }
