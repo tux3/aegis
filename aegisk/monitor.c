@@ -9,6 +9,7 @@
 #include <linux/mm.h>
 #include <linux/sched/signal.h>
 #include <linux/sched/task.h>
+#include <linux/suspend.h>
 #include <linux/types.h>
 #include <linux/umh.h>
 #include "monitor.h"
@@ -57,8 +58,10 @@ static int aegisc_umh_init(struct subprocess_info *info, struct cred *new)
 {
 	mutex_lock(&aegisc_task_mutex);
 	WARN_ON(aegisc_task);
-	if (aegisc_task_disable)
+	if (aegisc_task_disable) {
+		mutex_unlock(&aegisc_task_mutex);
 		return -EBUSY;
+	}
 
 	aegisc_task = get_task_struct(current);
 	pr_info("Usermode helper init (pid %u)\n", task_pid_nr(aegisc_task));
@@ -162,7 +165,7 @@ pid_t aegisc_umh_get_pid(void)
 	return pid;
 }
 
-void stop_aegisc_monitor_thread(void)
+static void stop_aegisc_monitor_thread(void)
 {
 	int err = aegisc_umh_disable_and_kill();
 	if (err)
@@ -174,18 +177,67 @@ void stop_aegisc_monitor_thread(void)
 	aegisc_monitor_task = NULL;
 }
 
-int start_aegisc_monitor_thread(void)
+static int start_aegisc_monitor_thread(void)
 {
-	int ret = sanity_check_aegisc_file();
-	if (ret)
+	int ret;
+
+	if (WARN_ON(aegisc_monitor_task))
+		return -EBUSY;
+	if ((ret = sanity_check_aegisc_file()))
 		return ret;
 
+	aegisc_task_disable = 0;
 	aegisc_monitor_task =
 		kthread_create(aegisc_monitor_thread, NULL, "aegisc_monitor");
 	if (IS_ERR(aegisc_monitor_task)) {
-		return PTR_ERR(aegisc_monitor_task);
+		ret = PTR_ERR(aegisc_monitor_task);
+		aegisc_monitor_task = NULL;
+	} else {
+		wake_up_process(aegisc_monitor_task);
 	}
-	wake_up_process(aegisc_monitor_task);
+	return ret;
+}
+
+#ifdef CONFIG_PM_SLEEP
+static int aegisk_pm_notification(struct notifier_block *nb, unsigned long action,
+			      void *data)
+{
+	int ret;
+
+	if (action == PM_HIBERNATION_PREPARE || action == PM_SUSPEND_PREPARE) {
+		pr_info("pre suspend notification, stopping umh and monitor thread");
+		stop_aegisc_monitor_thread();
+		return NOTIFY_OK;
+	} else if (action == PM_POST_HIBERNATION || action == PM_POST_SUSPEND) {
+		pr_info("post suspend notification, restarting umh and monitor thread");
+		ret = start_aegisc_monitor_thread();
+		if (ret) {
+			pr_err("Failed to restart monitor thread (%pe)", ERR_PTR(ret));
+			return 0;
+		}
+		return NOTIFY_OK;
+	} else {
+		return 0;
+	}
+}
+
+static struct notifier_block pm_notifier = { .notifier_call = aegisk_pm_notification };
+#endif
+
+void aegisc_monitor_cleanup(void)
+{
+#ifdef CONFIG_PM_SLEEP
+	unregister_pm_notifier(&pm_notifier);
+#endif
+
+	stop_aegisc_monitor_thread();
+}
+
+int aegisc_monitor_init(void)
+{
+	int ret = start_aegisc_monitor_thread();
+	if (ret)
+		return ret;
 
 	pr_debug("Monitor thread started, waiting for first aegisc exec\n");
 	if (wait_for_completion_interruptible(&aegisc_umh_startup_done)) {
@@ -193,6 +245,16 @@ int start_aegisc_monitor_thread(void)
 		stop_aegisc_monitor_thread();
 		return -EINTR;
 	}
+
+#ifdef CONFIG_PM_SLEEP
+	ret = register_pm_notifier(&pm_notifier);
+	if (ret) {
+		pr_err("Failed to register pm notifier for umh monitor\n");
+		stop_aegisc_monitor_thread();
+		return ret;
+	}
+#endif
+
 	pr_debug("Monitor thread and usermode helper started successfully\n");
 	return READ_ONCE(aegisc_umh_statup_err);
 }
