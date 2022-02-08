@@ -47,7 +47,7 @@ pub fn capture_webcam_picture() -> Result<ImageBuffer<Rgb<u8>, rscam::Frame>> {
     })?;
 
     // Give cheap webcams a few frames to adjust settings :)
-    for _ in 0..5 {
+    for _ in 0..30 {
         let _ = cam.capture();
     }
     let frame = cam.capture()?;
