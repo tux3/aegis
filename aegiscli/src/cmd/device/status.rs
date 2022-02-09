@@ -5,6 +5,6 @@ use clap::ArgMatches;
 
 pub async fn status(_config: &Config, mut client: DeviceClient, _args: &ArgMatches) -> Result<()> {
     let status = client.status().await?;
-    println!("Device status: {:#?}", status);
+    println!("Device status: {status:#?}");
     Ok(())
 }

@@ -30,7 +30,7 @@ impl AdminClient {
         route: &str,
         arg: impl Serialize,
     ) -> Result<R> {
-        let route = format!("/admin/{}", route);
+        let route = format!("/admin/{route}");
         let payload = bincode::serialize(&arg)?;
         let signature = randomized_signature(&self.key, route.as_bytes(), &payload);
         let reply = self.client.request(&route, &signature, payload).await?;

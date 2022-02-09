@@ -42,10 +42,7 @@ fn check_privs_and_module() {
             if umh_pid == self_pid {
                 info!("Running as the kernel module's usermode helper, everything is nominal =]")
             } else if umh_pid != 0 {
-                error!(
-                    "A usermode helper is already running (pid {}), exiting",
-                    umh_pid
-                );
+                error!("A usermode helper is already running (pid {umh_pid}), exiting");
                 std::process::exit(1);
             } else {
                 warn!("The kernel module appears loaded but no usermode helper is running! Continuing...")
@@ -56,7 +53,7 @@ fn check_privs_and_module() {
     } else if !module::is_running() {
         warn!("Kernel module does not appear to be loaded, trying modprobe");
         if let Err(e) = module::try_load() {
-            error!("Could not load kernel module ({}), continuing anyways", e);
+            error!("Could not load kernel module ({e}), continuing anyways");
         } else {
             info!("Successfully loaded module, exiting to let the aegisc usermode helper instance run");
             std::process::exit(0);
@@ -66,7 +63,7 @@ fn check_privs_and_module() {
 
 async fn handle_server_events(mut event_rx: Receiver<ServerCommand>) {
     while let Some(event) = event_rx.recv().await {
-        trace!("Received server event: {:?}", event);
+        trace!("Received server event: {event:?}");
         match event {
             ServerCommand::StatusUpdate(status) => lock::apply_status(status).await,
             ServerCommand::PowerCommand(cmd) => power::apply_command(cmd).await,
@@ -85,9 +82,9 @@ async fn handle_client_events(
             ClientEvent::WebcamPicture(data) => {
                 let size = data.len() as f32 / 1024.0;
                 if let Err(e) = client.store_camera_picture(data).await {
-                    error!("Failed to upload webcam picture: {}", e);
+                    error!("Failed to upload webcam picture: {e}");
                 } else {
-                    info!("Successfully uploaded {:.1}kB camera picture!", size)
+                    info!("Successfully uploaded {size:.1}kB camera picture!")
                 }
             }
             ClientEvent::InputWhileLockedWithoutWebcam => {
@@ -141,7 +138,7 @@ async fn main() -> Result<()> {
 
     check_privs_and_module();
     if let Err(e) = setup_xorg_env_vars() {
-        error!("Failed to setup Xorg env, screenshots may not work: {}", e);
+        error!("Failed to setup Xorg env, screenshots may not work: {e}");
     }
 
     let (event_tx, event_rx) = channel(1);

@@ -82,13 +82,13 @@ pub async fn log_insert_time(client: &mut DeviceClient) {
                 .log_event(DeviceEvent {
                     timestamp: time.insert_time.timestamp() as u64,
                     level: EventLogLevel::Info,
-                    message: format!("Module inserted ({} since boot)", boot_to_insert_delay),
+                    message: format!("Module inserted ({boot_to_insert_delay} since boot)"),
                 })
                 .await
             {
-                error!("Failed to log module insert_time: {}", e)
+                error!("Failed to log module insert_time: {e}")
             }
         }
-        Err(e) => error!("Failed to read module insert_time sysfs file: {}", e),
+        Err(e) => error!("Failed to read module insert_time sysfs file: {e}"),
     }
 }

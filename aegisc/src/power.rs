@@ -11,10 +11,7 @@ pub async fn apply_command(cmd: PowerCommand) {
         PowerCommand::Poweroff => "poweroff",
     };
     if let Err(e) = std::fs::write("/sys/aegisk/power", arg_str) {
-        error!(
-            "Failed to write power control file, module may not be running ({})",
-            e
-        );
+        error!("Failed to write power control file, module may not be running ({e})");
     }
 
     // Fallback, just in case (perfectly OK if it races with the module)

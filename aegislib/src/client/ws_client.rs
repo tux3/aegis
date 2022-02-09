@@ -90,7 +90,7 @@ impl WsClient {
             match Self::connect(ws_url).await {
                 Ok(s) => break s,
                 Err(e) => {
-                    warn!("WsClient: Failed to connect to websocket: {}", e);
+                    warn!("WsClient: Failed to connect to websocket: {e}");
                     tokio::time::sleep(Duration::from_secs(1)).await;
                 }
             }
@@ -127,7 +127,7 @@ impl WsClient {
             let msg = match maybe_msg {
                 Ok(msg) => msg,
                 Err(WebsocketDisconnected(e)) => {
-                    error!("WsClient::recv_message: {}", e);
+                    error!("WsClient::recv_message: {e}");
                     let ws_stream = Self::connect_loop_forever(&ws_connect_url).await;
                     debug!("WsClient: WebSocket reconnected");
                     let (new_write, new_read) = ws_stream.split();
@@ -149,20 +149,20 @@ impl WsClient {
                         .await
                         .map_err(Error::from)
                     {
-                        warn!("WsClient::recv_message: Failed to answer ping: {}", e);
+                        warn!("WsClient::recv_message: Failed to answer ping: {e}");
                     }
                 }
                 Ok(WsReceivedMessage::ServerCommand(cmd)) => {
                     if let Some(event_tx) = &event_tx {
                         if let Err(e) = event_tx.send(cmd).await {
-                            error!("WsClient::recv_message: Failed to send server cmd: {}", e);
+                            error!("WsClient::recv_message: Failed to send server cmd: {e}");
                         }
                     }
                 }
                 Ok(WsReceivedMessage::RequestReply(reply)) => {
                     if last_request_id.as_deref() == Some(reply.msg_id.as_ref()) {
                         if let Err(e) = response_tx.send(reply.reply).await {
-                            error!("WsClient::recv_message: Failed to send reply: {}", e);
+                            error!("WsClient::recv_message: Failed to send reply: {e}");
                             return;
                         }
                     } else {
@@ -172,22 +172,16 @@ impl WsClient {
                         )
                     }
                 }
-                Err(e) => warn!(
-                    "WsClient::recv_message: Failed to parse received message: {}",
-                    e
-                ),
+                Err(e) => warn!("WsClient::recv_message: Failed to parse received message: {e}"),
             }
         };
 
-        error!("WsClient::recv_message: disconnected: {}", err);
+        error!("WsClient::recv_message: disconnected: {err}");
         if let Err(send_err) = response_tx
             .send(Err(WebsocketDisconnected(anyhow!(err))))
             .await
         {
-            error!(
-                "WsClient::recv_message: Channel failed while trying to send error: {}",
-                send_err
-            )
+            error!("WsClient::recv_message: Channel failed while trying to send error: {send_err}")
         }
     }
 
@@ -283,7 +277,7 @@ impl ApiClient for WsClient {
     ) -> Result<Bytes, ClientError> {
         let signature = base64::encode_config(signature, base64::URL_SAFE_NO_PAD).into_bytes();
         let mut msg = signature.to_vec();
-        msg.extend_from_slice(format!(" {} ", handler).as_bytes());
+        msg.extend_from_slice(format!(" {handler} ").as_bytes());
         msg.extend_from_slice(&payload);
         self.request_tx
             .send(signature)

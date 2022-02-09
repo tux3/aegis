@@ -32,6 +32,6 @@ pub async fn set_status(
             draw_decoy,
         })
         .await?;
-    println!("New device status: {:#?}", status);
+    println!("New device status: {status:#?}");
     Ok(())
 }

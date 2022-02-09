@@ -35,11 +35,11 @@ pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
     let input_fn_ident = &input.sig.ident;
     let http_fn_ident = syn::Ident::new(
-        &format!("__{}_http_handler", &input_fn_ident),
+        &format!("__{input_fn_ident}_http_handler"),
         Span::call_site(),
     );
     let handler_fn_ident =
-        syn::Ident::new(&format!("__{}_handler", &input_fn_ident), Span::call_site());
+        syn::Ident::new(&format!("__{input_fn_ident}_handler"), Span::call_site());
 
     if input.sig.asyncness.is_none() {
         return quote_spanned! {

@@ -80,7 +80,7 @@ pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<Stat
             DeviceEvent {
                 timestamp: Utc::now().naive_utc().timestamp() as u64,
                 level: EventLogLevel::Info,
-                message: format!("Status updated: {:?}", &status),
+                message: format!("Status updated: {status:?}"),
             },
         )
         .await;
@@ -94,10 +94,7 @@ pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<Stat
         ws.send(WsServerCommand::from(status_update))
             .await
             .unwrap_or_else(|e| {
-                warn!(
-                    "Failed to send status update to websocket for device {}: {}",
-                    dev_id, e
-                );
+                warn!("Failed to send status update to websocket for device {dev_id}: {e}",);
             });
     }
 
@@ -145,10 +142,7 @@ pub async fn send_power_command(db: &mut PgConnection, arg: SendPowerCommandArg)
     )))
     .await
     .unwrap_or_else(|e| {
-        warn!(
-            "Failed to send power command to websocket for device {}: {}",
-            dev_id, e
-        );
+        warn!("Failed to send power command to websocket for device {dev_id}: {e}",);
     });
     let _ = events::insert(
         db,

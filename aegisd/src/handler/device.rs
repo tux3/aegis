@@ -50,7 +50,7 @@ pub async fn store_camera_picture(
         DeviceEvent {
             timestamp: now.timestamp() as u64,
             level: EventLogLevel::Info,
-            message: format!("Camera picture uploaded ({}kiB)", pic_size_kb),
+            message: format!("Camera picture uploaded ({pic_size_kb}kiB)"),
         },
     )
     .await;

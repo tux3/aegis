@@ -80,7 +80,7 @@ async fn input_event_while_locked() {
                 "/sys/aegisk/alert",
                 "Detected input event while screen was locked. No webcam picture available.",
             );
-            warn!("Input event while locked, but failed to capture pic: {}", e);
+            warn!("Input event while locked, but failed to capture pic: {e}");
             if let Some(tx) = WEBCAM_PIC_EVENT_TX.lock().await.deref_mut() {
                 let _ = tx.send(ClientEvent::InputWhileLockedWithoutWebcam).await;
             }
@@ -106,7 +106,7 @@ fn watch_input_events() {
             if matches!(event, Event::Switch(_) | Event::Device(_)) {
                 continue;
             }
-            trace!("Got libinput event: {:?}", event);
+            trace!("Got libinput event: {event:?}");
             if INPUT_LOCKED.load(Acquire) {
                 tokio::spawn(input_event_while_locked());
             }
@@ -219,7 +219,7 @@ fn draw_screenshot(mut screen: ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<()> {
         screen = image::imageops::resize(&screen, w, h, FilterType::Triangle);
     }
 
-    debug!("Drawing screenshot at {}x{} with {} bpp", w, h, bytespp);
+    debug!("Drawing screenshot at {w}x{h} with {bytespp} bpp");
     for y in 0..h {
         for x in 0..w {
             let idx = (y * line_length + x * bytespp) as usize;
@@ -236,20 +236,20 @@ fn draw_screenshot(mut screen: ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<()> {
 
 pub async fn apply_status(status: impl Into<StatusUpdate>) {
     let status = status.into();
-    info!("Applying device status: {:?}", status);
+    info!("Applying device status: {status:?}");
     if status.ssh_locked {
         if let Err(e) = run_as_root(vec!["systemctl", "stop", "ssh"]) {
-            error!("Failed to lock SSH: {}", e)
+            error!("Failed to lock SSH: {e}")
         }
     } else if let Err(e) = run_as_root(vec!["systemctl", "start", "ssh"]) {
-        error!("Failed to unlock SSH: {}", e)
+        error!("Failed to unlock SSH: {e}")
     }
 
     let was_already_locked = INPUT_LOCKED.load(Acquire);
     let screenshot = if status.vt_locked && status.draw_decoy && !was_already_locked {
         start_watch_input_events().await;
         get_screenshot()
-            .inspect_err(|e| warn!("Failed to capture screenshot: {}", e))
+            .inspect_err(|e| warn!("Failed to capture screenshot: {e}"))
             .ok()
     } else {
         None
@@ -257,18 +257,18 @@ pub async fn apply_status(status: impl Into<StatusUpdate>) {
     if !status.vt_locked {
         stop_watch_input_events().await;
         if let Err(e) = Framebuffer::set_kd_mode_ex("/dev/tty25", KdMode::Text) {
-            warn!("Failed to switch TTY back to text mode: {}", e)
+            warn!("Failed to switch TTY back to text mode: {e}")
         }
     }
 
     if let Err(e) = set_vt_lock(status.vt_locked) {
-        error!("Failed to set vt_lock ({})", e);
+        error!("Failed to set vt_lock ({e})");
     }
 
     if status.vt_locked && status.draw_decoy && !was_already_locked {
         if let Some(screen) = screenshot {
             if let Err(e) = draw_screenshot(screen) {
-                error!("Failed to draw screenshot: {}", e);
+                error!("Failed to draw screenshot: {e}");
             }
         }
     }

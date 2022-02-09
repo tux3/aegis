@@ -54,8 +54,8 @@ pub async fn register_device(
     };
     let reply = client
         .post(format!(
-            "{}{}/register/{}/name/{}",
-            proto, &config.server_addr, pk, name
+            "{proto}{addr}/register/{pk}/name/{name}",
+            addr = &config.server_addr
         ))
         .send()
         .await

@@ -65,9 +65,9 @@ where
             let mut conn = db
                 .acquire()
                 .await
-                .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
+                .map_err(|e| ErrorInternalServerError(format!("Database error: {e}")))?;
             let dev_id = match get_dev_id_by_pk(&mut conn, &device_pk).await {
-                Err(e) => return Err(ErrorForbidden(format!("Device not found: {}", e))),
+                Err(e) => return Err(ErrorForbidden(format!("Device not found: {e}"))),
                 Ok(id) => id,
             };
             req.extensions_mut().insert(DeviceId(dev_id)).unwrap();

@@ -41,7 +41,7 @@ pub async fn websocket(
 
     let conn = &mut db.acquire().await?;
     let dev_id = match device::get_dev_id_by_pk(conn, &device_pk).await {
-        Err(e) => return Err(ErrorForbidden(format!("Device not found: {}", e)).into()),
+        Err(e) => return Err(ErrorForbidden(format!("Device not found: {e}")).into()),
         Ok(id) => id,
     };
 

@@ -157,7 +157,7 @@ impl WsConn {
         let handler = match HANDLER_MAP.get(handler) {
             Some(handler) => handler,
             _ => {
-                warn!(%remote_addr, "Websocket handler not found: {}", handler);
+                warn!(%remote_addr, "Websocket handler not found: {handler}");
                 ctx.notify(WsResponse {
                     is_ok: false,
                     msg_id,
@@ -180,11 +180,11 @@ impl WsConn {
                 Err(e) => WsResponse {
                     is_ok: false,
                     msg_id,
-                    payload: format!("{}", e).into(),
+                    payload: format!("{e}").into(),
                 },
             };
             self_addr.send(reply_bytes).await.unwrap_or_else(|e| {
-                warn!("Failed to send websocket reply to actor: {}", e);
+                warn!("Failed to send websocket reply to actor: {e}");
             })
         };
         fut.into_actor(self).spawn(ctx);
@@ -247,7 +247,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsConn {
                 self.last_heartbeat = Instant::now();
             }
             Ok(ws::Message::Close(reason)) => {
-                warn!(%remote_addr, "Closed websocket with reason: {:?}", reason);
+                warn!(%remote_addr, "Closed websocket with reason: {reason:?}");
                 ctx.close(reason);
                 ctx.stop();
             }
@@ -256,7 +256,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsConn {
             }
             Ok(ws::Message::Nop) => (),
             Err(e) => {
-                error!(%remote_addr, "Protocol error: {}", e);
+                error!(%remote_addr, "Protocol error: {e}");
                 ctx.stop();
             }
         }

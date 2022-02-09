@@ -204,13 +204,13 @@ pub async fn update_status(
 ) -> Result<Status> {
     let mut fields = vec!["dev_id=dev_id".to_owned()];
     if let Some(val) = vt_locked {
-        fields.push(format!("vt_locked = {}", val));
+        fields.push(format!("vt_locked = {val}"));
     }
     if let Some(val) = ssh_locked {
-        fields.push(format!("ssh_locked = {}", val));
+        fields.push(format!("ssh_locked = {val}"));
     }
     if let Some(val) = draw_decoy {
-        fields.push(format!("draw_decoy = {}", val));
+        fields.push(format!("draw_decoy = {val}"));
     }
 
     // Only if we actually updated something, set updated_at
@@ -219,10 +219,7 @@ pub async fn update_status(
     }
 
     let fields = fields.join(",");
-    let query = &format!(
-        "UPDATE device_status SET {} WHERE dev_id = $1 RETURNING *",
-        fields
-    );
+    let query = &format!("UPDATE device_status SET {fields} WHERE dev_id = $1 RETURNING *");
     let result = sqlx::query_as::<_, Status>(query)
         .bind(dev_id)
         .fetch_one(conn)
