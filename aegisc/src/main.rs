@@ -19,7 +19,7 @@ use aegislib::command::device::{DeviceEvent, EventLogLevel};
 use aegislib::command::server::ServerCommand;
 use anyhow::Result;
 use chrono::Utc;
-use clap::Arg;
+use clap::arg;
 use nix::unistd::{getpid, ROOT};
 use tokio::spawn;
 use tokio::sync::mpsc::{channel, Receiver};
@@ -114,14 +114,10 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let args = clap::App::new("aegisc")
+    let args = clap::Command::new("aegisc")
         .about("Client-side Aegis daemon")
         .arg(
-            Arg::new("config")
-                .short('c')
-                .long("config")
-                .takes_value(true)
-                .help("Path to the config file"),
+            arg!(-c --config <path> "Path to the config file").allow_invalid_utf8(true), // Paths are not UTF-8
         )
         .get_matches();
     let config_path = args

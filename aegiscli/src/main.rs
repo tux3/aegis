@@ -4,7 +4,7 @@ mod config;
 use aegislib::client::{AdminClient, DeviceClient};
 use aegislib::crypto::sign_keypair_from_file;
 use anyhow::{Context, Result};
-use clap::{app_from_crate, arg, App, AppSettings};
+use clap::{arg, command, Command};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -15,61 +15,62 @@ async fn main() -> Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    let args = app_from_crate!()
+    let args = command!()
         .arg(
             arg!(-c --config <path> "Path to the config file")
                 .allow_invalid_utf8(true) // Paths are not UTF-8
                 .required(false),
         )
         .arg(arg!(use_rest: --rest "Use REST API instead of websockets").required(false))
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand_required(true)
         .subcommand(
-            App::new("gen-device-key")
+            Command::new("gen-device-key")
                 .about("Generate a random device key file")
                 .arg(arg!(<output> "The destination file").allow_invalid_utf8(true)),
         )
         .subcommand(
-            App::new("derive-root-key-file")
+            Command::new("derive-root-key-file")
                 .about("Generate a root key file from a password")
                 .arg(arg!(<output> "The destination file").allow_invalid_utf8(true))
                 .arg(arg!([password] "The password for the new root key")),
         )
         .subcommand(
-            App::new("derive-root-pubkey")
+            Command::new("derive-root-pubkey")
                 .about("Generate a root public signature key from a password")
                 .arg(arg!([password] "The password for the new root key")),
         )
         .subcommand(
-            App::new("register")
+            Command::new("register")
                 .about("Register as a device pending validation by an admin")
                 .arg(arg!(<key> "The device private key file").allow_invalid_utf8(true))
                 .arg(arg!(<name> "The device's name")),
         )
         .subcommand(
-            App::new("admin")
+            Command::new("admin")
                 .about("Send control request using the admin root keys")
                 .arg(arg!(<key> "The admin root key file").allow_invalid_utf8(true))
                 .subcommand(
-                    App::new("list-pending").about("List registered devices pending validation"),
+                    Command::new("list-pending")
+                        .about("List registered devices pending validation"),
                 )
                 .subcommand(
-                    App::new("delete-pending")
+                    Command::new("delete-pending")
                         .about("Delete a device pending validation")
                         .arg(arg!(<name> "The device's name")),
                 )
                 .subcommand(
-                    App::new("confirm-pending")
+                    Command::new("confirm-pending")
                         .about("Confirm a device pending validation")
                         .arg(arg!(<name> "The device's name")),
                 )
-                .subcommand(App::new("list-device").about("List valid registered devices"))
+                .subcommand(Command::new("list-device").about("List valid registered devices"))
                 .subcommand(
-                    App::new("delete-device")
+                    Command::new("delete-device")
                         .about("Delete a valid registered device")
                         .arg(arg!(<name> "The device's name")),
                 )
                 .subcommand(
-                    App::new("set-status")
+                    Command::new("set-status")
                         .about("Update status for a registered device")
                         .arg(arg!(<name> "The device's name"))
                         .arg(
@@ -84,10 +85,12 @@ async fn main() -> Result<()> {
                 ),
         )
         .subcommand(
-            App::new("device")
+            Command::new("device")
                 .about("Send requests as if running on a device")
                 .arg(arg!(<key> "The device private key file").allow_invalid_utf8(true))
-                .subcommand(App::new("status").about("Get the expected status for this device")),
+                .subcommand(
+                    Command::new("status").about("Get the expected status for this device"),
+                ),
         )
         .get_matches();
 

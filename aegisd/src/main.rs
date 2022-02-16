@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let args = clap::App::new("aegisd")
+    let args = clap::Command::new("aegisd")
         .about("Server-side daemon for Aegis client protection")
         .arg(
             Arg::new("config")

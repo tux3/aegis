@@ -16,7 +16,7 @@ futures = "0.3.17"
 anyhow = "1.0.43"
 tracing = "0.1.26"
 tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
-clap = "3.0.0"
+clap = "3.1.0"
 actix = "0.12.0"
 actix-web = { version = "4.0.0-rc.2", features = ["macros", "compress-gzip", "compress-zstd"], default-features = false }
 actix-web-actors = "4.0.0-beta.10"
