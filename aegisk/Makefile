@@ -6,10 +6,10 @@ MODULE_OBJ = $(MODULE).ko
 .PHONY: clean rmmod insmod install quickInstall
 
 all:
-	make -C $(KDIR) M=$(MAKEFILE_DIR) modules
+	$(MAKE) -C $(KDIR) M=$(MAKEFILE_DIR) modules
 
 clean:
-	make -C $(KDIR) M=$(MAKEFILE_DIR) clean
+	$(MAKE) -C $(KDIR) M=$(MAKEFILE_DIR) clean
 
 dkmsBuild: all
 	test -f /var/lib/shim-signed/mok/MOK.priv && \
@@ -24,7 +24,7 @@ insmod: all rmmod
 	sudo insmod ./$(MODULE_OBJ)
 
 install:
-	make -C $(KDIR) M=$(MAKEFILE_DIR) modules_install
+	$(MAKE) -C $(KDIR) M=$(MAKEFILE_DIR) modules_install
 
 quickInstall:
 	cp $(MODULE_OBJ) /lib/modules/`uname -r`/extra
