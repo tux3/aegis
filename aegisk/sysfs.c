@@ -10,11 +10,13 @@
 #include "monitor.h"
 #include "sysfs.h"
 #include "lock.h"
+#include "lookup.h"
 
 enum { AEGISK_POWEROFF = 0, AEGISK_REBOOT };
 
 static struct task_struct *aegisk_pm_task;
 static struct kobject *aegisk_kobj;
+static u8* locked_down;
 static int lock_vt_flag;
 static u64 insert_time_utc_ns;
 static u64 boot_time_ns;
@@ -119,10 +121,36 @@ static ssize_t insert_time_show(struct kobject *kobj,
 static struct kobj_attribute insert_time_attribute = __ATTR(
 	insert_time, S_IRUSR | S_IRGRP | S_IROTH, insert_time_show, NULL);
 
+static ssize_t lockdown_show(struct kobject *kobj, struct kobj_attribute *attr,
+			    char *buf)
+{
+	return sprintf(buf, "%d\n", *locked_down);
+}
+
+static ssize_t lockdown_store(struct kobject *kobj, struct kobj_attribute *attr,
+			     const char *buf, size_t count)
+{
+	int new;
+	int ret = kstrtoint(buf, 0, &new);
+	if (ret < 0)
+		return ret;
+
+	if (new < 0 || new > 2)
+		return -EINVAL;
+
+	pr_info("Set kernel_locked_down to %d\n", new);
+	*locked_down = new;
+	return count;
+}
+
+static struct kobj_attribute lockdown_attribute =
+	__ATTR(kernel_lockdown, S_IRUSR | S_IWUSR, lockdown_show, lockdown_store);
+
 static struct attribute *attrs[] = {
 	&umh_pid_attribute.attr, &lock_vt_attribute.attr,
 	&alert_attribute.attr,	 &insert_time_attribute.attr,
-	&power_attribute.attr,	 NULL,
+	&power_attribute.attr,   &lockdown_attribute.attr,
+	NULL,
 };
 
 static struct attribute_group attr_group = {
@@ -139,6 +167,10 @@ void aegisk_cleanup_sysfs(void)
 
 int aegisk_init_sysfs(void)
 {
+	locked_down = (u8*)module_kallsyms_lookup_name("kernel_locked_down");
+	if (!locked_down)
+		return -ENOENT;
+
 	insert_time_utc_ns = ktime_get_real_ns();
 	boot_time_ns = ktime_get_boottime_ns();
 
