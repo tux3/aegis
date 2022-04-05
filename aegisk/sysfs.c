@@ -33,7 +33,7 @@ static int aegisk_do_pm_task(void *pm_action)
 static ssize_t lock_vt_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
 {
-	return sprintf(buf, "%d\n", lock_vt_flag);
+	return sysfs_emit(buf, "%d\n", lock_vt_flag);
 }
 
 static ssize_t lock_vt_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -62,7 +62,7 @@ static struct kobj_attribute lock_vt_attribute =
 static ssize_t umh_pid_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
 {
-	return sprintf(buf, "%d\n", aegisc_umh_get_pid());
+	return sysfs_emit(buf, "%d\n", aegisc_umh_get_pid());
 }
 
 static struct kobj_attribute umh_pid_attribute =
@@ -115,7 +115,7 @@ static struct kobj_attribute power_attribute =
 static ssize_t insert_time_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%llu %llu\n", insert_time_utc_ns, boot_time_ns);
+	return sysfs_emit(buf, "%llu %llu\n", insert_time_utc_ns, boot_time_ns);
 }
 
 static struct kobj_attribute insert_time_attribute = __ATTR(
@@ -124,7 +124,7 @@ static struct kobj_attribute insert_time_attribute = __ATTR(
 static ssize_t lockdown_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
 {
-	return sprintf(buf, "%d\n", *locked_down);
+	return sysfs_emit(buf, "%d\n", *locked_down);
 }
 
 static ssize_t lockdown_store(struct kobject *kobj, struct kobj_attribute *attr,
