@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use std::fmt::{Debug, Display, Formatter};
 
 /// Replaces anyhow::bail! in functions that must return a crate::error::Error
+#[allow(unused_macro_rules)]
 macro_rules! bail {
     ($msg:literal $(,)?) => {
         return Err(crate::error::Error::Anyhow(anyhow::anyhow!($msg)))
