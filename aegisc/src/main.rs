@@ -117,7 +117,9 @@ async fn main() -> Result<()> {
     let args = clap::Command::new("aegisc")
         .about("Client-side Aegis daemon")
         .arg(
-            arg!(-c --config <path> "Path to the config file").allow_invalid_utf8(true), // Paths are not UTF-8
+            arg!(-c --config <path> "Path to the config file")
+                .required(false)
+                .allow_invalid_utf8(true), // Paths are not UTF-8
         )
         .get_matches();
     let config_path = args
