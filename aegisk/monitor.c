@@ -98,9 +98,10 @@ dead:
 static int run_aegisc_umh(void)
 {
 	struct subprocess_info *aegisc_sub_info;
-	char *argv[2], *envp[1];
+	char *argv[3], *envp[1];
 	argv[0] = (char *)aegisc_path;
-	argv[1] = NULL;
+	argv[1] = "--log-file";
+	argv[2] = NULL;
 	envp[0] = NULL;
 
 	aegisc_sub_info = call_usermodehelper_setup(aegisc_path, argv, envp,
