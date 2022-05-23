@@ -24,7 +24,10 @@ use nix::unistd::{getpid, ROOT};
 use tokio::spawn;
 use tokio::sync::mpsc::{channel, Receiver};
 use tracing::{error, info, trace, warn};
-use tracing_subscriber::EnvFilter;
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{fmt, EnvFilter, Layer};
 
 fn check_privs_and_module() {
     if !nix::unistd::geteuid().is_root() {
@@ -102,17 +105,36 @@ async fn handle_client_events(
     std::process::exit(1);
 }
 
+fn setup_tracing(should_log_to_file: bool) -> Result<Option<WorkerGuard>> {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info,actix_server=warn")
+    }
+    let mut log_guard = None;
+    let log_file = if should_log_to_file {
+        let file_appender = tracing_appender::rolling::daily("/var/log/aegisc", "aegisc.log");
+        let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+        log_guard = Some(guard);
+        Some(
+            fmt::layer()
+                .with_writer(non_blocking)
+                .with_ansi(false)
+                .with_filter(EnvFilter::from_default_env()),
+        )
+    } else {
+        None
+    };
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
+        .with(log_file)
+        .init();
+    Ok(log_guard)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     if std::env::var("RUST_LIB_BACKTRACE").is_err() {
         std::env::set_var("RUST_LIB_BACKTRACE", "1")
     }
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info,actix_server=warn")
-    }
-    tracing_subscriber::fmt::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
 
     let args = clap::Command::new("aegisc")
         .about("Client-side Aegis daemon")
@@ -121,7 +143,11 @@ async fn main() -> Result<()> {
                 .required(false)
                 .allow_invalid_utf8(true), // Paths are not UTF-8
         )
+        .arg(
+            arg!(log_file: -l --"log-file" "Write log files under /var/log/aegisc").required(false),
+        )
         .get_matches();
+    let _log_guard = setup_tracing(args.is_present("log_file"))?;
     let config_path = args
         .value_of_os("config")
         .map(Into::into)
