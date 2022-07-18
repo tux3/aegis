@@ -7,6 +7,7 @@
 #include <linux/kthread.h>
 #include <linux/mount.h>
 #include <linux/mm.h>
+#include <linux/reboot.h>
 #include <linux/sched/signal.h>
 #include <linux/sched/task.h>
 #include <linux/suspend.h>
@@ -199,6 +200,18 @@ static int start_aegisc_monitor_thread(void)
 	return ret;
 }
 
+static int handle_shutdown(struct notifier_block *notifier,
+			    unsigned long what, void *data)
+{
+	stop_aegisc_monitor_thread();
+	return NOTIFY_OK;
+}
+
+static struct notifier_block reboot_notifier = {
+	.notifier_call		= handle_shutdown,
+	.priority		= 0,
+};
+
 #ifdef CONFIG_PM_SLEEP
 static int aegisk_pm_notification(struct notifier_block *nb, unsigned long action,
 			      void *data)
@@ -255,6 +268,8 @@ int aegisc_monitor_init(void)
 		return ret;
 	}
 #endif
+
+	register_reboot_notifier(&reboot_notifier);
 
 	pr_debug("Monitor thread and usermode helper started successfully\n");
 	return READ_ONCE(aegisc_umh_statup_err);
