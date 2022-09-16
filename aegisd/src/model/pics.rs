@@ -3,14 +3,12 @@ use anyhow::{bail, Result};
 use chrono::NaiveDateTime;
 use sqlx::PgConnection;
 
-#[derive(ormx::Table, sqlx::FromRow)]
-#[ormx(table = "device_cam_pics", id = dev_id, insertable)]
+#[derive(sqlx::FromRow)]
 pub struct DeviceCameraPicture {
-    #[ormx(default)]
-    id: i32,
-    dev_id: i32,
-    created_at: NaiveDateTime,
-    jpeg_data: Vec<u8>,
+    pub id: i32,
+    pub dev_id: i32,
+    pub created_at: NaiveDateTime,
+    pub jpeg_data: Vec<u8>,
 }
 
 impl From<DeviceCameraPicture> for StoredCameraPicture {
@@ -19,6 +17,21 @@ impl From<DeviceCameraPicture> for StoredCameraPicture {
             created_at_timestamp: p.created_at.timestamp() as u64,
             jpeg_data: p.jpeg_data,
         }
+    }
+}
+
+impl DeviceCameraPicture {
+    pub async fn insert(self, db: &mut PgConnection) -> sqlx::Result<()> {
+        sqlx::query!(
+            "INSERT INTO device_cam_pics (dev_id, created_at, jpeg_data)
+             VALUES ($1, $2, $3)",
+            self.dev_id,
+            self.created_at,
+            self.jpeg_data,
+        )
+        .execute(db)
+        .await?;
+        Ok(())
     }
 }
 

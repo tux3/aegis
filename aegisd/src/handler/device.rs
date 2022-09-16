@@ -10,11 +10,10 @@ use aegislib::command::device::{
 
 use crate::model::device::get_status;
 use crate::model::events;
-use crate::model::pics::InsertDeviceCameraPicture;
+use crate::model::pics::DeviceCameraPicture;
 use actix_web::web::Bytes;
 use anyhow::Result;
 use chrono::Utc;
-use ormx::Insert;
 use sqlx::PgConnection;
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
@@ -37,7 +36,8 @@ pub async fn store_camera_picture(
 ) -> Result<StoreCameraPictureReply> {
     let now = Utc::now().naive_utc();
     let pic_size_kb = args.jpeg_data.len() / 1024;
-    InsertDeviceCameraPicture {
+    DeviceCameraPicture {
+        id: 0,
         dev_id: dev_id.0,
         created_at: now,
         jpeg_data: args.jpeg_data,

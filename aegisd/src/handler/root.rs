@@ -11,7 +11,6 @@ use actix_web::{get, post, HttpRequest, HttpResponse, Responder};
 use chrono::Utc;
 use ed25519_dalek::PublicKey;
 use futures::StreamExt;
-use ormx::Insert;
 use sqlx::{Error as SqlxError, PgPool};
 use tracing::debug;
 

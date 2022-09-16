@@ -2,19 +2,30 @@ use crate::handler::device::DeviceId;
 use aegislib::command::device::StatusReply;
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use futures::future::BoxFuture;
-use ormx::{Insert, Table};
 use sqlx::{Connection, PgConnection};
 
-#[derive(ormx::Table)]
-#[ormx(table = "device", id = id, insertable)]
 pub struct Device {
-    #[ormx(default)]
     id: i32,
     created_at: NaiveDateTime,
     name: String,
     pubkey: String,
     pending: bool,
+}
+
+impl Device {
+    pub async fn insert(self, db: &mut PgConnection) -> sqlx::Result<()> {
+        sqlx::query!(
+            "INSERT INTO device (created_at, name, pubkey, pending)
+             VALUES ($1, $2, $3, $4)",
+            self.created_at,
+            self.name,
+            self.pubkey,
+            self.pending
+        )
+        .execute(db)
+        .await?;
+        Ok(())
+    }
 }
 
 pub struct PendingDevice {
@@ -23,19 +34,16 @@ pub struct PendingDevice {
     pub pubkey: String,
 }
 
-impl Insert for PendingDevice {
-    type Table = Device;
-
-    fn insert(self, db: &mut PgConnection) -> BoxFuture<'_, sqlx::Result<Self::Table>> {
-        Device::insert(
-            db,
-            InsertDevice {
-                created_at: self.created_at,
-                name: self.name,
-                pubkey: self.pubkey,
-                pending: true,
-            },
-        )
+impl PendingDevice {
+    pub async fn insert(self, db: &mut PgConnection) -> sqlx::Result<()> {
+        let device = Device {
+            id: 0,
+            created_at: self.created_at,
+            name: self.name,
+            pubkey: self.pubkey,
+            pending: true,
+        };
+        device.insert(db).await
     }
 }
 
@@ -60,16 +68,12 @@ impl From<Device> for aegislib::command::admin::RegisteredDevice {
     }
 }
 
-#[derive(ormx::Table, sqlx::FromRow)]
-#[ormx(table = "device_status", id = dev_id, insertable)]
+#[derive(sqlx::FromRow)]
 pub struct Status {
     dev_id: i32,
     updated_at: NaiveDateTime,
-    #[ormx(default)]
     vt_locked: bool,
-    #[ormx(default)]
     ssh_locked: bool,
-    #[ormx(default)]
     draw_decoy: bool,
 }
 
@@ -82,6 +86,23 @@ impl From<Status> for StatusReply {
             ssh_locked: s.ssh_locked,
             draw_decoy: s.draw_decoy,
         }
+    }
+}
+
+impl Status {
+    pub async fn insert(self, db: &mut PgConnection) -> sqlx::Result<()> {
+        sqlx::query!(
+            "INSERT INTO device_status
+             VALUES ($1, $2, $3, $4, $5)",
+            self.dev_id,
+            self.updated_at,
+            self.vt_locked,
+            self.ssh_locked,
+            self.draw_decoy
+        )
+        .execute(db)
+        .await?;
+        Ok(())
     }
 }
 
@@ -129,13 +150,14 @@ pub async fn confirm_pending(conn: &mut PgConnection, name: &str) -> Result<()> 
     )
     .fetch_one(&mut tx)
     .await?;
-    Status::insert(
-        &mut tx,
-        InsertStatus {
-            dev_id: result.id,
-            updated_at: Utc::now().naive_utc(),
-        },
-    )
+    Status {
+        dev_id: result.id,
+        updated_at: Utc::now().naive_utc(),
+        vt_locked: false,
+        ssh_locked: false,
+        draw_decoy: false,
+    }
+    .insert(&mut tx)
     .await?;
     tx.commit().await?;
     Ok(())
