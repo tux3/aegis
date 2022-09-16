@@ -37,6 +37,7 @@ async fn main() -> Result<()> {
                 .long("config")
                 .takes_value(true)
                 .required(true)
+                .allow_invalid_utf8(true)
                 .help("Path to the config file"),
         )
         .get_matches();
