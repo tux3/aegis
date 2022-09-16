@@ -22,6 +22,19 @@ impl Config {
         let contents = std::fs::read_to_string(path.as_ref()).expect("Failed to read config file");
         toml::from_str(&contents).expect("Invalid config file format")
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_config(test_root_public_key: PublicKey) -> Self {
+        Self {
+            port: 8080,
+            db_host: ":memory:".to_string(),
+            db_name: "aegisd".to_string(),
+            db_user: "aegisd".to_string(),
+            db_pass: "test_password".to_string(),
+            db_max_conn: db_max_conn_default(),
+            root_public_signature_key: test_root_public_key,
+        }
+    }
 }
 
 fn db_max_conn_default() -> u32 {

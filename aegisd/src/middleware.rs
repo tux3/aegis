@@ -1,5 +1,5 @@
 mod admin;
-pub use admin::AdminReqTransform;
+pub use admin::AdminAuthLayer;
 
 mod device;
-pub use device::DeviceReqTransform;
+pub use device::DeviceAuthLayer;

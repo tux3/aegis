@@ -19,7 +19,7 @@ pub fn randomized_signature(
     let mut random_buf = [0u8; SIGNATURE_RANDOM_BUF_LEN];
     getrandom::getrandom(&mut random_buf).expect("Failed to get random");
     let mut hasher = ed25519_dalek::Sha512::new();
-    hasher.update(&random_buf);
+    hasher.update(random_buf);
     hasher.update(route);
     hasher.update(payload);
     let signature = keypair.sign_prehashed(hasher, None).unwrap();
@@ -47,7 +47,7 @@ pub fn check_signature(
     };
 
     let mut hasher = ed25519_dalek::Sha512::new();
-    hasher.update(&random_buf);
+    hasher.update(random_buf);
     hasher.update(route);
     hasher.update(payload);
     public_key

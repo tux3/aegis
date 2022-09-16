@@ -25,7 +25,7 @@ impl DeviceClient {
         event_tx: Option<Sender<ServerCommand>>,
     ) -> Result<Self, (ed25519_dalek::Keypair, ClientError)> {
         let api_base = if config.use_rest {
-            let dev_pk = base64::encode_config(&key.public, base64::URL_SAFE_NO_PAD);
+            let dev_pk = base64::encode_config(key.public, base64::URL_SAFE_NO_PAD);
             format!("/device/{dev_pk}/")
         } else {
             String::new()

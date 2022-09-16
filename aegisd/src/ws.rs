@@ -1,28 +1,24 @@
+use crate::error::Error;
 use crate::handler::device::{device_handler_iter, DeviceHandlerFn, DeviceId};
-use actix::dev::Stream;
-use actix::{
-    Actor, ActorContext, Addr, AsyncContext, ContextFutureSpawner, Handler, Message, StreamHandler,
-    WrapFuture,
-};
-use actix_http::error::PayloadError;
-use actix_http::ws;
-use actix_http::ws::Codec;
-use actix_web::web::{Bytes, BytesMut};
-use actix_web::{Error, HttpRequest, HttpResponse};
-use actix_web_actors::ws::{handshake, WebsocketContext};
 use aegislib::command::server::ServerCommand;
 use aegislib::crypto::check_signature;
+use anyhow::anyhow;
+use async_stream::stream;
+use axum::body::Bytes;
+use axum::extract::ws::{close_code, CloseFrame, Message, WebSocket};
 use dashmap::DashMap;
 use ed25519_dalek::PublicKey;
-use serde::Serialize;
+use futures::pin_mut;
+use futures::StreamExt;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use tokio::select;
+use tokio::sync::mpsc::Sender;
 use tracing::{error, info, warn};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const WS_TIMEOUT: Duration = Duration::from_secs(10);
-const WS_PAYLOAD_MAX_SIZE: usize = 2 * 1024 * 1024;
 
 lazy_static::lazy_static! {
     static ref HANDLER_MAP: HashMap<String, DeviceHandlerFn> = {
@@ -33,33 +29,36 @@ lazy_static::lazy_static! {
         m
     };
 
-    static ref WS_CLIENT_MAP: DashMap<DeviceId, Addr<WsConn>> = DashMap::new();
+    static ref WS_CLIENT_MAP: DashMap<DeviceId, Sender<ServerCommand>> = DashMap::new();
 }
 
-pub fn ws_for_device(dev_id: DeviceId) -> Option<Addr<WsConn>> {
+pub fn ws_for_device(dev_id: DeviceId) -> Option<Sender<ServerCommand>> {
     WS_CLIENT_MAP.get(&dev_id).map(|a| a.clone())
 }
 
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct WsResponse {
-    is_ok: bool,
-    msg_id: Bytes,
-    payload: Bytes,
+async fn send_response(
+    ws: &mut WebSocket,
+    ok: bool,
+    msg_id: &[u8],
+    payload: &[u8],
+) -> Result<(), Error> {
+    let mut msg = msg_id.to_vec();
+    if ok {
+        msg.extend_from_slice(b" ok ");
+    } else {
+        msg.extend_from_slice(b" err ");
+    };
+    msg.extend_from_slice(payload);
+    ws.send(Message::Binary(msg)).await?;
+    Ok(())
 }
 
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct WsServerCommand {
-    payload: Bytes,
-}
-
-impl<T: Into<ServerCommand> + Serialize> From<T> for WsServerCommand {
-    fn from(cmd: T) -> Self {
-        let cmd = cmd.into();
-        let payload = Bytes::from(bincode::serialize(&cmd).unwrap());
-        Self { payload }
-    }
+async fn send_server_command(ws: &mut WebSocket, cmd: ServerCommand) -> Result<(), Error> {
+    // WS server message format: <handler> <payload>
+    let mut payload = b"server_command ".to_vec();
+    bincode::serialize_into(&mut payload, &cmd).unwrap();
+    ws.send(Message::Binary(payload)).await?;
+    Ok(())
 }
 
 pub struct WsConn {
@@ -86,29 +85,89 @@ impl WsConn {
         }
     }
 
-    pub fn start<S>(self, req: &HttpRequest, stream: S) -> Result<HttpResponse, Error>
-    where
-        S: Stream<Item = Result<Bytes, PayloadError>> + 'static,
-    {
-        let mut res = handshake(req)?;
-        let codec = Codec::new().max_size(WS_PAYLOAD_MAX_SIZE);
-        Ok(res.streaming(WebsocketContext::with_codec(self, stream, codec)))
-    }
-
-    fn start_heartbeat(&self, ctx: &mut WebsocketContext<Self>) {
-        ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
-            if Instant::now().duration_since(act.last_heartbeat) > WS_TIMEOUT {
-                info!("{}: ping timeout", &act.remote_addr_untrusted);
-                ctx.stop();
-                return;
+    pub async fn handle(mut self, mut ws: WebSocket) -> Result<(), Error> {
+        let (send_queue_tx, mut send_queue_rx) = tokio::sync::mpsc::channel(4);
+        WS_CLIENT_MAP.insert(self.device_id, send_queue_tx);
+        let heartbeat = stream! {
+            loop {
+                tokio::time::sleep(HEARTBEAT_INTERVAL).await;
+                yield Message::Ping(b"ping".to_vec());
             }
+        };
+        pin_mut!(heartbeat);
+        loop {
+            select! {
+                ping = heartbeat.next() => {
+                    ws.send(ping.unwrap()).await?;
+                },
+                msg = send_queue_rx.recv() => {
+                    let msg = msg.ok_or_else(|| anyhow!("Send queue tx dropped!"))?;
+                    send_server_command(&mut ws, msg).await?;
+                },
+                msg = ws.recv() => {
+                    let msg = match msg {
+                        Some(Ok(msg)) => msg,
+                        Some(Err(e)) => {
+                            error!(remote_addr = &self.remote_addr_untrusted, "Protocol error: {e}");
+                            break;
+                        },
+                        None => {
+                            warn!(remote_addr = &self.remote_addr_untrusted, "Websocket connection closed");
+                            break;
+                        }
+                    };
+                    if let Err(close_msg) = self.handle_ws_msg(&mut ws, msg).await {
+                        let _ = ws.send(Message::Close(close_msg)).await;
+                        break;
+                    }
+                }
+            }
+            if Instant::now().duration_since(self.last_heartbeat) > WS_TIMEOUT {
+                info!("{}: ping timeout", &self.remote_addr_untrusted);
+                break;
+            }
+        }
 
-            ctx.ping(b"ping");
-        });
+        Ok(())
     }
 
-    fn handle_message_data(&self, ctx: &mut WebsocketContext<Self>, raw_payload: Bytes) {
+    async fn handle_ws_msg(
+        &mut self,
+        ws: &mut WebSocket,
+        msg: Message,
+    ) -> Result<(), Option<CloseFrame<'static>>> {
+        match msg {
+            Message::Text(payload) => self.handle_message_data(ws, payload.into_bytes()).await,
+            Message::Binary(payload) => self.handle_message_data(ws, payload).await,
+            Message::Ping(msg) => {
+                self.last_heartbeat = Instant::now();
+                ws.send(Message::Pong(msg)).await.map_err(|e| {
+                    Some(CloseFrame {
+                        code: close_code::ABNORMAL,
+                        reason: format!("Failed to respond to ping: {e}").into(),
+                    })
+                })?;
+                Ok(())
+            }
+            Message::Pong(_) => {
+                self.last_heartbeat = Instant::now();
+                Ok(())
+            }
+            Message::Close(reason) => {
+                let remote_addr = &self.remote_addr_untrusted;
+                warn!(%remote_addr, "Closed websocket with reason: {reason:?}");
+                Err(None)
+            }
+        }
+    }
+
+    async fn handle_message_data(
+        &self,
+        ws: &mut WebSocket,
+        raw_payload: Vec<u8>,
+    ) -> Result<(), Option<CloseFrame<'static>>> {
         // WS message format: <msg_id> <handler> <data>
+        let raw_payload = Bytes::from(raw_payload);
         let mut elems = raw_payload.splitn(3, |&c| c == b' ');
         let remote_addr = self.remote_addr_untrusted.as_str();
         let (msg_id, handler, data) = match (elems.next(), elems.next(), elems.next(), elems.next())
@@ -120,145 +179,66 @@ impl WsConn {
                     size = raw_payload.len(),
                     "Invalid websocket message"
                 );
-                ctx.close(Some(ws::CloseCode::Protocol.into()));
-                return;
+                return Err(Some(CloseFrame {
+                    code: close_code::PROTOCOL,
+                    reason: "Invalid websocket message".into(),
+                }));
             }
         };
-        let msg_id = raw_payload.slice_ref(msg_id);
-        let signature = match base64::decode_config(&msg_id, base64::URL_SAFE_NO_PAD) {
+        let signature = match base64::decode_config(msg_id, base64::URL_SAFE_NO_PAD) {
             Ok(msg_id) => Bytes::from(msg_id),
             Err(_) => {
                 warn!(%remote_addr, "Websocket msg_id is invalid base64");
-                ctx.close(Some(ws::CloseCode::Protocol.into()));
-                return;
+                return Err(Some(CloseFrame {
+                    code: close_code::PROTOCOL,
+                    reason: "Websocket msg_id is invalid base64".into(),
+                }));
             }
         };
-        let data = raw_payload.slice_ref(data);
         let handler = match std::str::from_utf8(handler) {
             Ok(handler) => handler,
             _ => {
                 warn!(%remote_addr, "Websocket handler name is not valid UTF-8");
-                ctx.close(Some(ws::CloseCode::Protocol.into()));
-                return;
+                return Err(Some(CloseFrame {
+                    code: close_code::PROTOCOL,
+                    reason: "Websocket handler name is not valid UTF-8".into(),
+                }));
             }
         };
 
         // msg_id is actually also a randomized signature!
-        if !check_signature(&self.device_pk, &signature, handler.as_bytes(), &data) {
+        if !check_signature(&self.device_pk, &signature, handler.as_bytes(), data) {
             warn!(%remote_addr, %handler, "Invalid websocket message signature");
-            ctx.notify(WsResponse {
-                is_ok: false,
-                msg_id,
-                payload: "invalid signature".into(),
-            });
-            return;
+            return Err(Some(CloseFrame {
+                code: close_code::POLICY,
+                reason: "invalid signature".into(),
+            }));
         }
 
         let handler = match HANDLER_MAP.get(handler) {
             Some(handler) => handler,
             _ => {
                 warn!(%remote_addr, "Websocket handler not found: {handler}");
-                ctx.notify(WsResponse {
-                    is_ok: false,
-                    msg_id,
-                    payload: "handler not found".into(),
-                });
-                return;
+                send_response(ws, false, msg_id, b"handler not found")
+                    .await
+                    .map_err(|_| None)?;
+                return Ok(());
             }
         };
 
-        let self_addr = ctx.address().recipient();
         let db = self.db.clone();
         let dev_id = self.device_id;
-        let fut = async move {
-            let reply_bytes = match handler(db, dev_id, data).await {
-                Ok(reply) => WsResponse {
-                    is_ok: true,
-                    msg_id,
-                    payload: reply,
-                },
-                Err(e) => WsResponse {
-                    is_ok: false,
-                    msg_id,
-                    payload: format!("{e}").into(),
-                },
-            };
-            self_addr.send(reply_bytes).await.unwrap_or_else(|e| {
-                warn!("Failed to send websocket reply to actor: {e}");
-            })
-        };
-        fut.into_actor(self).spawn(ctx);
-    }
-}
-
-impl Handler<WsResponse> for WsConn {
-    type Result = ();
-
-    fn handle(&mut self, msg: WsResponse, ctx: &mut Self::Context) {
-        let mut ws_header = BytesMut::from(msg.msg_id.as_ref());
-        if msg.is_ok {
-            ws_header.extend_from_slice(b" ok ");
-        } else {
-            ws_header.extend_from_slice(b" err ");
-        };
-        ctx.write_raw(ws::Message::Continuation(ws::Item::FirstBinary(
-            ws_header.into(),
-        )));
-        ctx.write_raw(ws::Message::Continuation(ws::Item::Last(msg.payload)));
-    }
-}
-
-impl Handler<WsServerCommand> for WsConn {
-    type Result = ();
-
-    fn handle(&mut self, msg: WsServerCommand, ctx: &mut Self::Context) {
-        // WS server message format: <handler> <payload>
-        ctx.write_raw(ws::Message::Continuation(ws::Item::FirstBinary(
-            "server_command ".into(),
-        )));
-        ctx.write_raw(ws::Message::Continuation(ws::Item::Last(msg.payload)));
-    }
-}
-
-impl Actor for WsConn {
-    type Context = WebsocketContext<Self>;
-
-    fn started(&mut self, ctx: &mut Self::Context) {
-        WS_CLIENT_MAP.insert(self.device_id, ctx.address());
-        self.start_heartbeat(ctx);
-    }
-
-    fn stopped(&mut self, _ctx: &mut Self::Context) {
-        WS_CLIENT_MAP.remove(&self.device_id);
-    }
-}
-
-impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsConn {
-    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
-        let remote_addr = &self.remote_addr_untrusted;
-        match msg {
-            Ok(ws::Message::Text(payload)) => self.handle_message_data(ctx, payload.into_bytes()),
-            Ok(ws::Message::Binary(payload)) => self.handle_message_data(ctx, payload),
-            Ok(ws::Message::Ping(msg)) => {
-                self.last_heartbeat = Instant::now();
-                ctx.pong(&msg);
-            }
-            Ok(ws::Message::Pong(_)) => {
-                self.last_heartbeat = Instant::now();
-            }
-            Ok(ws::Message::Close(reason)) => {
-                warn!(%remote_addr, "Closed websocket with reason: {reason:?}");
-                ctx.close(reason);
-                ctx.stop();
-            }
-            Ok(ws::Message::Continuation(_)) => {
-                ctx.stop();
-            }
-            Ok(ws::Message::Nop) => (),
-            Err(e) => {
-                error!(%remote_addr, "Protocol error: {e}");
-                ctx.stop();
-            }
+        let data = raw_payload.slice_ref(data);
+        match handler(db, dev_id, data).await {
+            Ok(reply) => send_response(ws, true, msg_id, &reply).await,
+            Err(e) => send_response(ws, false, msg_id, format!("{e}").as_bytes()).await,
         }
+        .map_err(|e| {
+            Some(CloseFrame {
+                code: close_code::ERROR,
+                reason: format!("Failed to send handler response: {}", e).into(),
+            })
+        })?;
+        Ok(())
     }
 }

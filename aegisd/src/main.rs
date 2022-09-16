@@ -3,22 +3,16 @@ mod error;
 mod handler;
 mod middleware;
 mod model;
+mod server;
 mod ws;
 
-use crate::handler::admin::admin_handler_iter;
-use crate::handler::device::device_handler_iter;
-use crate::handler::root::{health, register, websocket};
-use actix_web::middleware::Logger;
-use actix_web::web::Data;
-use actix_web::{web, App, HttpServer};
-use anyhow::Result;
 use clap::Arg;
 use sqlx::postgres::PgPoolOptions;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-#[actix_web::main]
-async fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     if std::env::var("RUST_LIB_BACKTRACE").is_err() {
         std::env::set_var("RUST_LIB_BACKTRACE", "1")
     }
@@ -61,33 +55,6 @@ async fn main() -> Result<()> {
     sqlx::migrate!().run(&pool).await?;
     info!("Migration done");
 
-    let app_config = Data::new(config.clone());
-    let app_fn = move || {
-        let app = App::new()
-            .app_data(pool.clone())
-            .app_data(app_config.clone())
-            .service(websocket)
-            .service(register)
-            .service(health);
-
-        let mut admin_scope = web::scope("/admin").wrap(middleware::AdminReqTransform);
-        for handler in admin_handler_iter() {
-            admin_scope = admin_scope.route(handler.path, web::post().to(handler.http_handler));
-        }
-        let app = app.service(admin_scope);
-
-        let mut device_scope =
-            web::scope("/device/{device_pk}").wrap(middleware::DeviceReqTransform);
-        for handler in device_handler_iter() {
-            device_scope = device_scope.route(handler.path, web::post().to(handler.http_handler));
-        }
-        let app = app.service(device_scope);
-        app.wrap(Logger::default())
-    };
-
-    let server = HttpServer::new(app_fn).bind(("0.0.0.0", config.port))?;
-
-    info!(port = config.port, "Server ready");
-    server.run().await?;
+    server::run_server(pool, &config).await?;
     Ok(())
 }

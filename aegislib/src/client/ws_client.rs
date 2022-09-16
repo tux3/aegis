@@ -45,7 +45,7 @@ impl WsClient {
         key: &ed25519_dalek::Keypair,
         event_tx: Option<Sender<ServerCommand>>,
     ) -> Result<Self, ClientError> {
-        let pk = base64::encode_config(&key.public, base64::URL_SAFE_NO_PAD);
+        let pk = base64::encode_config(key.public, base64::URL_SAFE_NO_PAD);
         let proto = if config.use_tls { "wss://" } else { "ws://" };
         let ws_url = format!("{}{}/ws/{}", proto, &config.server_addr, pk);
         let ws_stream = Self::connect(&ws_url).await?;
