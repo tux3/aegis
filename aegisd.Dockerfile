@@ -1,6 +1,6 @@
 ARG APP_NAME=aegisd
 
-FROM rust:1.58 as builder
+FROM rust:1.63 as builder
 ARG APP_NAME
 
 COPY . ./
