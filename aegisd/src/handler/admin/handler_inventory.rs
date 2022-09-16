@@ -1,11 +1,13 @@
-use actix_web::error::Error;
-use actix_web::web::Bytes;
-use actix_web::HttpRequest;
+use crate::error::Error;
+use axum::body::{Body, Bytes};
+use axum::extract::State;
+use axum::http::Request;
+use sqlx::PgPool;
 use std::future::Future;
 use std::pin::Pin;
 
-type PinBoxFut<T> = Pin<Box<dyn Future<Output = T>>>;
-pub type AdminHttpHandlerFn = fn(HttpRequest, Bytes) -> PinBoxFut<Result<Bytes, Error>>;
+type PinBoxFut<T> = Pin<Box<dyn Future<Output = T> + Send>>;
+pub type AdminHttpHandlerFn = fn(State<PgPool>, Request<Body>) -> PinBoxFut<Result<Bytes, Error>>;
 
 pub struct AdminHandler {
     pub path: &'static str,

@@ -5,11 +5,11 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use sqlx::{Connection, PgConnection};
 
 pub struct Device {
-    id: i32,
-    created_at: NaiveDateTime,
-    name: String,
-    pubkey: String,
-    pending: bool,
+    pub id: i32,
+    pub created_at: NaiveDateTime,
+    pub name: String,
+    pub pubkey: String,
+    pub pending: bool,
 }
 
 impl Device {
@@ -70,11 +70,11 @@ impl From<Device> for aegislib::command::admin::RegisteredDevice {
 
 #[derive(sqlx::FromRow)]
 pub struct Status {
-    dev_id: i32,
-    updated_at: NaiveDateTime,
-    vt_locked: bool,
-    ssh_locked: bool,
-    draw_decoy: bool,
+    pub dev_id: i32,
+    pub updated_at: NaiveDateTime,
+    pub vt_locked: bool,
+    pub ssh_locked: bool,
+    pub draw_decoy: bool,
 }
 
 impl From<Status> for StatusReply {
@@ -258,4 +258,37 @@ pub async fn get_status(conn: &mut PgConnection, dev_id: i32) -> Result<Status> 
     .fetch_one(conn)
     .await?;
     Ok(result)
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::{confirm_pending, PendingDevice};
+    use crate::error::Result;
+    use chrono::Utc;
+    use sqlx::PgConnection;
+
+    pub async fn insert_test_pending_device(
+        db: &mut PgConnection,
+        device_pk: String,
+        name: String,
+    ) -> Result<()> {
+        PendingDevice {
+            created_at: Utc::now().naive_utc(),
+            name,
+            pubkey: device_pk,
+        }
+        .insert(db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn insert_test_device(
+        db: &mut PgConnection,
+        device_pk: String,
+        name: String,
+    ) -> Result<()> {
+        insert_test_pending_device(db, device_pk, name.clone()).await?;
+        confirm_pending(db, &name).await?;
+        Ok(())
+    }
 }

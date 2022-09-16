@@ -84,29 +84,24 @@ pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
     let input_block = &input.block;
 
     let outer_fn = quote! {
-        pub async fn #http_fn_ident(req: actix_web::HttpRequest, body: Bytes) -> Result<Bytes, actix_web::Error> {
-            use actix_web::HttpMessage;
+        pub async fn #http_fn_ident(axum::extract::State(db): axum::extract::State<sqlx::Pool<sqlx::Postgres>>,
+                                    req: axum::http::Request<axum::body::Body>) -> Result<Bytes, crate::error::Error> {
             let dev_id = *req.extensions()
                              .get::<DeviceId>()
                              .expect("Missing device id in device request handler");
 
             inventory::submit!(handler_inventory::DeviceHandler {
                 path: #path,
-                http_handler: |req, arg| Box::pin(#http_fn_ident(req, arg)),
+                http_handler: |db, req| Box::pin(#http_fn_ident(db, req)),
                 handler: |db, id, arg| Box::pin(#handler_fn_ident(db, id, arg)),
             });
 
-            let db = req
-                .app_data::<sqlx::PgPool>()
-                .cloned()
-                .expect("Missing db app data in device request handler");
-
-            pub async fn #handler_fn_ident(db: sqlx::PgPool, dev_id: DeviceId, body: Bytes) -> Result<Bytes, actix_web::Error> {
+            pub async fn #handler_fn_ident(db: sqlx::PgPool, dev_id: DeviceId, body: Bytes) -> Result<Bytes, crate::error::Error> {
                 let args: #input_arg_ty = bincode::deserialize(body.as_ref()).map_err(|e| {
-                    actix_web::error::ErrorBadRequest(format!("Invalid argument: {}", e))
+                    crate::error::Error::Response(axum::http::StatusCode::BAD_REQUEST, format!("Invalid argument: {}", e))
                 })?;
                 let mut conn = db.acquire().await.map_err(|e| {
-                    actix_web::error::ErrorInternalServerError(format!("DB connection failed: {}", e))
+                    crate::error::Error::Response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("DB connection failed: {}", e))
                 })?;
 
                 async fn #input_fn_ident(#db_arg, #dev_id_arg, #input_arg) #input_ret_ty {
@@ -117,10 +112,14 @@ pub fn device_handler(args: TokenStream, input: TokenStream) -> TokenStream {
                     .await
                     .map(|r| Bytes::from(bincode::serialize(&r).unwrap()))
                     .map_err(|e| match e.downcast_ref::<sqlx::Error>() {
-                        Some(db_err) => actix_web::error::ErrorInternalServerError(format!("{}", db_err)),
-                        None => actix_web::error::ErrorBadRequest(e),
+                        Some(db_err) => crate::error::Error::Response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, db_err.to_string()),
+                        None => crate::error::Error::Response(axum::http::StatusCode::BAD_REQUEST, e.to_string()),
                     })
             }
+
+            let body = hyper::body::to_bytes(req.into_body()).await.map_err(|e| {
+                crate::error::Error::Response(axum::http::StatusCode::BAD_REQUEST, format!("Failed to read body: {}", e))
+            })?;
             #handler_fn_ident(db, dev_id, body).await
         }
     };
@@ -157,10 +156,17 @@ pub fn admin_handler(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let args = &input.sig.inputs;
+    let body_buf = quote!(
+        use hyper::body::Buf;
+        let body_buf = hyper::body::aggregate(req.into_body()).await.map_err(|e| {
+            crate::error::Error::Response(axum::http::StatusCode::BAD_REQUEST, format!("Failed to read body: {}", e))
+        })?;
+    );
     let args_call = if args.len() == 1 {
         quote!(
-            let args: () = bincode::deserialize(body.as_ref()).map_err(|_| {
-                actix_web::error::ErrorBadRequest(format!("Unexpected payload"))
+            #body_buf
+            let args: () = bincode::deserialize_from(body_buf.reader()).map_err(|_| {
+                crate::error::Error::Response(axum::http::StatusCode::BAD_REQUEST, format!("Failed to deserialize payload"))
             })?;
             #input_fn_ident(&mut *conn)
         )
@@ -176,8 +182,9 @@ pub fn admin_handler(args: TokenStream, input: TokenStream) -> TokenStream {
         };
         let input_arg_ty = &input_arg.ty;
         quote!(
-            let args: #input_arg_ty = bincode::deserialize(body.as_ref()).map_err(|e| {
-                actix_web::error::ErrorBadRequest(format!("Invalid argument: {}", e))
+            #body_buf;
+            let args: #input_arg_ty = bincode::deserialize_from(body_buf.reader()).map_err(|e| {
+                crate::error::Error::Response(axum::http::StatusCode::BAD_REQUEST, format!("Invalid argument: {}", e))
             })?;
             #input_fn_ident(&mut *conn, args)
         )
@@ -189,30 +196,27 @@ pub fn admin_handler(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let outer_fn = quote! {
-        pub async fn #http_fn_ident(req: actix_web::HttpRequest, body: Bytes) -> Result<Bytes, actix_web::Error> {
+        pub async fn #http_fn_ident(axum::extract::State(db): axum::extract::State<sqlx::Pool<sqlx::Postgres>>,
+                                    req: axum::http::Request<axum::body::Body>) -> Result<Bytes, crate::error::Error> {
             inventory::submit!(handler_inventory::AdminHandler {
                 path: #path,
-                http_handler: |req, arg| Box::pin(#http_fn_ident(req, arg)),
+                http_handler: |db, req| Box::pin(#http_fn_ident(db, req)),
             });
 
             async fn #input_fn_ident(#args) #input_ret_ty {
                 #input_block
             }
 
-            let db = req
-                .app_data::<sqlx::PgPool>()
-                .cloned()
-                .expect("Missing db app data in admin request handler");
             let mut conn = db.acquire().await.map_err(|e| {
-                actix_web::error::ErrorInternalServerError(format!("DB connection failed: {}", e))
+                crate::error::Error::Response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("DB connection failed: {}", e))
             })?;
 
             #args_call
                 .await
                 .map(|r| Bytes::from(bincode::serialize(&r).unwrap()))
                 .map_err(|e| match e.downcast_ref::<sqlx::Error>() {
-                    Some(db_err) => actix_web::error::ErrorInternalServerError(format!("{}", db_err)),
-                    None => actix_web::error::ErrorBadRequest(e),
+                    Some(db_err) => crate::error::Error::Response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, db_err.to_string()),
+                    None => crate::error::Error::Response(axum::http::StatusCode::BAD_REQUEST, e.to_string()),
                 })
         }
     };
