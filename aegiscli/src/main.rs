@@ -4,7 +4,8 @@ mod config;
 use aegislib::client::{AdminClient, DeviceClient};
 use aegislib::crypto::sign_keypair_from_file;
 use anyhow::{Context, Result};
-use clap::{arg, command, Command};
+use clap::{arg, command, value_parser, Command};
+use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -18,7 +19,7 @@ async fn main() -> Result<()> {
     let args = command!()
         .arg(
             arg!(-c --config <path> "Path to the config file")
-                .allow_invalid_utf8(true) // Paths are not UTF-8
+                .value_parser(value_parser!(PathBuf))
                 .required(false),
         )
         .arg(arg!(use_rest: --rest "Use REST API instead of websockets").required(false))
@@ -26,12 +27,12 @@ async fn main() -> Result<()> {
         .subcommand(
             Command::new("gen-device-key")
                 .about("Generate a random device key file")
-                .arg(arg!(<output> "The destination file").allow_invalid_utf8(true)),
+                .arg(arg!(<output> "The destination file").value_parser(value_parser!(PathBuf))),
         )
         .subcommand(
             Command::new("derive-root-key-file")
                 .about("Generate a root key file from a password")
-                .arg(arg!(<output> "The destination file").allow_invalid_utf8(true))
+                .arg(arg!(<output> "The destination file").value_parser(value_parser!(PathBuf)))
                 .arg(arg!([password] "The password for the new root key")),
         )
         .subcommand(
@@ -42,13 +43,13 @@ async fn main() -> Result<()> {
         .subcommand(
             Command::new("register")
                 .about("Register as a device pending validation by an admin")
-                .arg(arg!(<key> "The device private key file").allow_invalid_utf8(true))
+                .arg(arg!(<key> "The device private key file").value_parser(value_parser!(PathBuf)))
                 .arg(arg!(<name> "The device's name")),
         )
         .subcommand(
             Command::new("admin")
                 .about("Send control request using the admin root keys")
-                .arg(arg!(<key> "The admin root key file").allow_invalid_utf8(true))
+                .arg(arg!(<key> "The admin root key file").value_parser(value_parser!(PathBuf)))
                 .subcommand(
                     Command::new("list-pending")
                         .about("List registered devices pending validation"),
@@ -87,7 +88,7 @@ async fn main() -> Result<()> {
         .subcommand(
             Command::new("device")
                 .about("Send requests as if running on a device")
-                .arg(arg!(<key> "The device private key file").allow_invalid_utf8(true))
+                .arg(arg!(<key> "The device private key file").value_parser(value_parser!(PathBuf)))
                 .subcommand(
                     Command::new("status").about("Get the expected status for this device"),
                 ),
@@ -95,11 +96,11 @@ async fn main() -> Result<()> {
         .get_matches();
 
     let config_path = args
-        .value_of_os("config")
-        .map(|os| os.into())
+        .get_one::<PathBuf>("config")
+        .map(|p| p.to_owned())
         .unwrap_or_else(config::default_path);
     let mut config = config::Config::from_file(config_path);
-    if args.is_present("use_rest") {
+    if args.get_flag("use_rest") {
         config.use_rest = true;
     }
     let config = &config;
@@ -114,7 +115,7 @@ async fn main() -> Result<()> {
         ("derive-root-pubkey", sub_args) => cmd::derive_root_pubkey(config, sub_args).await,
         ("register", sub_args) => cmd::register(config, sub_args).await,
         ("admin", admin_args) => {
-            let root_keys = std::fs::read(admin_args.value_of_os("key").unwrap())?;
+            let root_keys = std::fs::read(admin_args.get_one::<PathBuf>("key").unwrap())?;
             let root_keys = bincode::deserialize(&root_keys)?;
             let client = AdminClient::new(&config.into(), &root_keys).await?;
             match admin_args.subcommand().unwrap() {
@@ -138,7 +139,7 @@ async fn main() -> Result<()> {
             }
         }
         ("device", dev_args) => {
-            let dev_key = sign_keypair_from_file(dev_args.value_of_os("key").unwrap())?;
+            let dev_key = sign_keypair_from_file(dev_args.get_one::<PathBuf>("key").unwrap())?;
             let client = DeviceClient::new(&config.into(), dev_key, None)
                 .await
                 .map_err(|(_, e)| e)?;

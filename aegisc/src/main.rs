@@ -19,8 +19,9 @@ use aegislib::command::device::{DeviceEvent, EventLogLevel};
 use aegislib::command::server::ServerCommand;
 use anyhow::Result;
 use chrono::Utc;
-use clap::arg;
+use clap::{arg, value_parser};
 use nix::unistd::{getpid, ROOT};
+use std::path::PathBuf;
 use tokio::spawn;
 use tokio::sync::mpsc::{channel, Receiver};
 use tracing::{error, info, trace, warn};
@@ -141,19 +142,19 @@ async fn main() -> Result<()> {
         .arg(
             arg!(-c --config <path> "Path to the config file")
                 .required(false)
-                .allow_invalid_utf8(true), // Paths are not UTF-8
+                .value_parser(value_parser!(PathBuf)),
         )
         .arg(
             arg!(log_file: -l --"log-file" "Write log files under /var/log/aegisc").required(false),
         )
         .get_matches();
-    let _log_guard = setup_tracing(args.is_present("log_file"))?;
+    let _log_guard = setup_tracing(args.get_flag("log_file"))?;
     let config_path = args
-        .value_of_os("config")
-        .map(Into::into)
+        .get_one::<PathBuf>("config")
+        .map(ToOwned::to_owned)
         .unwrap_or_else(config::default_path);
     let config = &Config::from_file(config_path).unwrap_or_else(|_| Config::default());
-    tracing::info!(
+    info!(
         device_name = config.device_name.as_str(),
         server_addr = config.server_addr.as_str(),
         use_tls = config.use_tls,

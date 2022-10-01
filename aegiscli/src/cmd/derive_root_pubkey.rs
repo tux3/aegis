@@ -5,7 +5,7 @@ use clap::ArgMatches;
 
 pub async fn derive_root_pubkey(_config: &Config, args: &ArgMatches) -> Result<()> {
     let password = args
-        .value_of("password")
+        .get_one::<String>("password")
         .map(ToOwned::to_owned)
         .unwrap_or_else(|| {
             dialoguer::Password::new()

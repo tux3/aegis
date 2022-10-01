@@ -8,7 +8,7 @@ pub async fn confirm_pending(
     mut client: AdminClient,
     args: &ArgMatches,
 ) -> Result<()> {
-    let name = args.value_of("name").unwrap();
+    let name: &String = args.get_one("name").unwrap();
     client.confirm_pending(name.to_owned()).await?;
     Ok(())
 }

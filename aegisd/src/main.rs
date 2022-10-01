@@ -6,8 +6,9 @@ mod model;
 mod server;
 mod ws;
 
-use clap::Arg;
+use clap::{value_parser, Arg};
 use sqlx::postgres::PgPoolOptions;
+use std::path::PathBuf;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -29,13 +30,13 @@ async fn main() -> anyhow::Result<()> {
             Arg::new("config")
                 .short('c')
                 .long("config")
-                .takes_value(true)
+                .num_args(1)
                 .required(true)
-                .allow_invalid_utf8(true)
+                .value_parser(value_parser!(PathBuf))
                 .help("Path to the config file"),
         )
         .get_matches();
-    let config_path = args.value_of_os("config").unwrap();
+    let config_path: &PathBuf = args.get_one("config").unwrap();
     let config = config::Config::from_file(config_path);
 
     info!(

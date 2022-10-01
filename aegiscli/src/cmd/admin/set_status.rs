@@ -20,10 +20,19 @@ pub async fn set_status(
     mut client: AdminClient,
     args: &ArgMatches,
 ) -> Result<()> {
-    let name = args.value_of("name").unwrap();
-    let vt_locked = args.value_of("vt-lock").map(parse_bool).transpose()?;
-    let ssh_locked = args.value_of("ssh-lock").map(parse_bool).transpose()?;
-    let draw_decoy = args.value_of("draw-decoy").map(parse_bool).transpose()?;
+    let name: &String = args.get_one("name").unwrap();
+    let vt_locked = args
+        .get_one::<String>("vt-lock")
+        .map(|s| parse_bool(s))
+        .transpose()?;
+    let ssh_locked = args
+        .get_one::<String>("ssh-lock")
+        .map(|s| parse_bool(s))
+        .transpose()?;
+    let draw_decoy = args
+        .get_one::<String>("draw-decoy")
+        .map(|s| parse_bool(s))
+        .transpose()?;
     let status = client
         .set_status(SetStatusArg {
             dev_name: name.to_owned(),

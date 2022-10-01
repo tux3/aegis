@@ -2,11 +2,12 @@ use crate::config::Config;
 use aegislib::crypto::RootKeys;
 use anyhow::Result;
 use clap::ArgMatches;
+use std::path::PathBuf;
 
 pub async fn derive_root_key_file(_config: &Config, args: &ArgMatches) -> Result<()> {
-    let out_path = args.value_of_os("output").unwrap();
+    let out_path: &PathBuf = args.get_one("output").unwrap();
     let password = args
-        .value_of("password")
+        .get_one::<String>("password")
         .map(ToOwned::to_owned)
         .unwrap_or_else(|| {
             dialoguer::Password::new()
