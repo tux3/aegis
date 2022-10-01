@@ -18,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
         std::env::set_var("RUST_LIB_BACKTRACE", "1")
     }
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info,actix_server=warn,sqlx::query=warn")
+        std::env::set_var("RUST_LOG", "info,sqlx::query=warn")
     }
     tracing_subscriber::fmt::fmt()
         .with_env_filter(EnvFilter::from_default_env())

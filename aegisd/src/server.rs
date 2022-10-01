@@ -10,8 +10,8 @@ use sqlx::PgPool;
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
-use tower_http::trace::TraceLayer;
-use tracing::info;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, TraceLayer};
+use tracing::{info, Level};
 
 pub async fn make_router(db: PgPool, config: &Config) -> Result<Router<PgPool>> {
     let mut app = Router::with_state(db.clone())
@@ -35,7 +35,11 @@ pub async fn make_router(db: PgPool, config: &Config) -> Result<Router<PgPool>> 
 
     app = app.layer(
         ServiceBuilder::new()
-            .layer(TraceLayer::new_for_http())
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                    .on_request(DefaultOnRequest::new().level(Level::INFO)),
+            )
             .layer(CompressionLayer::new()),
     );
 
