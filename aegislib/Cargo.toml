@@ -40,3 +40,6 @@ uniffi_build = { version = "=0.22.0", optional = true }
 [features]
 client = ["async-trait", "futures", "bytes", "tokio", "tokio-tungstenite", "reqwest"]
 ffi = ["client", "uniffi", "uniffi_macros", "uniffi_build", "tokio/rt-multi-thread"]
+
+[package.metadata.ndk]
+platform = 33
