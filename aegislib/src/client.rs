@@ -1,6 +1,7 @@
 mod api_client;
 
 pub use api_client::*;
+use base64::prelude::*;
 pub use reqwest::StatusCode;
 use thiserror::Error;
 
@@ -45,7 +46,7 @@ pub async fn register_device(
     name: &str,
     pk: &ed25519_dalek::PublicKey,
 ) -> Result<(), ClientError> {
-    let pk = base64::encode_config(pk, base64::URL_SAFE_NO_PAD);
+    let pk = BASE64_URL_SAFE_NO_PAD.encode(pk);
     let client = reqwest::Client::new();
     let proto = if config.use_tls {
         "https://"

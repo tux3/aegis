@@ -131,8 +131,10 @@ impl RootKeys {
 
     #[cfg(feature = "ffi")]
     pub fn matches_serializes_pubkey(&self, pubkey: &str) -> bool {
+        use base64::prelude::*;
+
         let our_pubkey = self.sig.public;
-        let our_pubkey = base64::encode_config(our_pubkey.as_ref(), base64::URL_SAFE_NO_PAD);
+        let our_pubkey = BASE64_URL_SAFE_NO_PAD.encode(our_pubkey.as_ref());
         our_pubkey == pubkey
     }
 }

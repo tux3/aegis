@@ -70,6 +70,7 @@ mod test {
     use crate::server::make_test_server;
     use aegislib::crypto::randomized_signature;
     use axum::body::Bytes;
+    use base64::prelude::*;
     use ed25519_dalek::Keypair;
     use http::{Request, Response, StatusCode};
     use hyper::Body;
@@ -79,7 +80,7 @@ mod test {
     fn signed_request<T: Into<Bytes>>(url: &str, body: T, key: &Keypair) -> Request<Body> {
         let body = body.into();
         let sig = randomized_signature(key, url.as_bytes(), body.as_ref());
-        let sig = base64::encode_config(sig, base64::URL_SAFE_NO_PAD);
+        let sig = BASE64_URL_SAFE_NO_PAD.encode(sig);
         Request::post(url)
             .header("Authorization", "Bearer ".to_string() + &sig)
             .body(body.into())
@@ -89,7 +90,7 @@ mod test {
     #[sqlx::test]
     async fn missing_auth_header(db: PgPool) -> Result<()> {
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         let conn = &mut db.acquire().await?;
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
@@ -108,7 +109,7 @@ mod test {
     #[sqlx::test]
     async fn bad_auth_header(db: PgPool) -> Result<()> {
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         let conn = &mut db.acquire().await?;
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
@@ -126,7 +127,7 @@ mod test {
     #[sqlx::test]
     async fn good_auth_header(db: PgPool) -> Result<()> {
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         let conn = &mut db.acquire().await?;
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 

@@ -63,7 +63,9 @@ pub async fn insert(conn: &mut PgConnection, dev_id: i32, event: DeviceEvent) ->
     sqlx::query!(
         r#"INSERT INTO device_event (dev_id, created_at, level, message) VALUES ($1, $2, $3, $4)"#,
         dev_id,
-        NaiveDateTime::from_timestamp(event.timestamp as i64, 0).into(),
+        NaiveDateTime::from_timestamp_opt(event.timestamp as i64, 0)
+            .unwrap()
+            .into(),
         DbEventLogLevel::from(event.level) as _,
         &event.message
     )

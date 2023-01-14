@@ -63,10 +63,11 @@ pub fn get_insert_time() -> Result<InsertTime> {
         .map(|(l, r)| (l.parse::<u64>(), r.parse::<u64>()))
     {
         Ok(InsertTime {
-            insert_time: NaiveDateTime::from_timestamp(
+            insert_time: NaiveDateTime::from_timestamp_opt(
                 (l / 1_000_000_000) as i64,
                 (l % 1_000_000_000) as u32,
-            ),
+            )
+            .unwrap(),
             boot_to_insert_delay: Duration::from_millis(r / 1_000_000),
         })
     } else {

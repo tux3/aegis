@@ -7,6 +7,7 @@ use crate::model::device::{count_pending, PendingDevice};
 use crate::ws::WsConn;
 use axum::extract::{ConnectInfo, Path, State, WebSocketUpgrade};
 use axum::response::{IntoResponse, Response};
+use base64::prelude::*;
 use chrono::Utc;
 use ed25519_dalek::PublicKey;
 use futures::StreamExt;
@@ -26,7 +27,7 @@ pub async fn websocket_upgrade(
     ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
     ws_upgrade: WebSocketUpgrade,
 ) -> Result<Response> {
-    let device_pk = base64::decode_config(device_pk, base64::URL_SAFE_NO_PAD).ok();
+    let device_pk = BASE64_URL_SAFE_NO_PAD.decode(device_pk).ok();
     let device_pk = match device_pk.and_then(|pk| PublicKey::from_bytes(&pk).ok()) {
         Some(pk) => pk,
         None => bail!(StatusCode::BAD_REQUEST, "Invalid device_id"),
@@ -54,7 +55,7 @@ pub async fn register(
     if request.into_body().next().await.is_some() {
         bail!(StatusCode::BAD_REQUEST, "Unexpected body");
     }
-    let device_pk = base64::decode_config(device_pk, base64::URL_SAFE_NO_PAD).ok();
+    let device_pk = BASE64_URL_SAFE_NO_PAD.decode(device_pk).ok();
     let device_pk = match device_pk.and_then(|pk| PublicKey::from_bytes(&pk).ok()) {
         Some(pk) => pk,
         None => bail!(StatusCode::BAD_REQUEST, "Invalid device_id"),
@@ -66,7 +67,7 @@ pub async fn register(
         bail!(StatusCode::BAD_REQUEST, "Too many pending devices");
     }
 
-    let pubkey_str = base64::encode_config(device_pk, base64::URL_SAFE_NO_PAD);
+    let pubkey_str = BASE64_URL_SAFE_NO_PAD.encode(device_pk);
     let insert_result = PendingDevice {
         created_at: Utc::now().naive_utc(),
         name,
@@ -90,6 +91,7 @@ mod test {
     use crate::model::device::list_pending;
     use crate::server::make_test_server;
     use aegislib::crypto::random_sign_keypair;
+    use base64::prelude::*;
     use http::{Request, Response, StatusCode};
     use hyper::Body;
     use sqlx::PgPool;
@@ -110,7 +112,7 @@ mod test {
     #[sqlx::test]
     async fn register_unexpected_body(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db).await?;
-        let dev_pk = base64::encode_config(random_sign_keypair().public, base64::URL_SAFE_NO_PAD);
+        let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(random_sign_keypair().public);
         let req = Request::post(format!("/register/{dev_pk}/name/test"))
             .body(b"body"[..].into())
             .unwrap();
@@ -122,7 +124,7 @@ mod test {
     #[sqlx::test]
     async fn register(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db.clone()).await?;
-        let dev_pk = base64::encode_config(random_sign_keypair().public, base64::URL_SAFE_NO_PAD);
+        let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(random_sign_keypair().public);
         let req = Request::post(format!("/register/{dev_pk}/name/test"))
             .body(Body::empty())
             .unwrap();

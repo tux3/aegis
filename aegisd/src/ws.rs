@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use async_stream::stream;
 use axum::body::Bytes;
 use axum::extract::ws::{close_code, CloseFrame, Message, WebSocket};
+use base64::prelude::*;
 use dashmap::DashMap;
 use ed25519_dalek::PublicKey;
 use futures::pin_mut;
@@ -185,7 +186,7 @@ impl WsConn {
                 }));
             }
         };
-        let signature = match base64::decode_config(msg_id, base64::URL_SAFE_NO_PAD) {
+        let signature = match BASE64_URL_SAFE_NO_PAD.decode(msg_id) {
             Ok(msg_id) => Bytes::from(msg_id),
             Err(_) => {
                 warn!(%remote_addr, "Websocket msg_id is invalid base64");
@@ -236,7 +237,7 @@ impl WsConn {
         .map_err(|e| {
             Some(CloseFrame {
                 code: close_code::ERROR,
-                reason: format!("Failed to send handler response: {}", e).into(),
+                reason: format!("Failed to send handler response: {e}").into(),
             })
         })?;
         Ok(())

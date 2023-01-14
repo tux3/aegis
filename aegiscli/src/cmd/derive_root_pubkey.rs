@@ -1,6 +1,7 @@
 use crate::config::Config;
 use aegislib::crypto::RootKeys;
 use anyhow::Result;
+use base64::prelude::*;
 use clap::ArgMatches;
 
 pub async fn derive_root_pubkey(_config: &Config, args: &ArgMatches) -> Result<()> {
@@ -14,7 +15,7 @@ pub async fn derive_root_pubkey(_config: &Config, args: &ArgMatches) -> Result<(
                 .unwrap()
         });
     let keys = RootKeys::derive(&password);
-    let pubkey = base64::encode_config(keys.sig.public, base64::URL_SAFE_NO_PAD);
+    let pubkey = BASE64_URL_SAFE_NO_PAD.encode(keys.sig.public);
     println!("Root public signature key: {pubkey}");
     Ok(())
 }

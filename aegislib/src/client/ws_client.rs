@@ -3,6 +3,7 @@ use crate::client::{ApiClient, ClientConfig, ClientError, ClientHttpError};
 use crate::command::server::ServerCommand;
 use anyhow::{anyhow, bail, Error, Result};
 use async_trait::async_trait;
+use base64::prelude::*;
 use bytes::Bytes;
 use futures::stream::{SplitSink, SplitStream, StreamExt};
 use futures::SinkExt;
@@ -45,7 +46,7 @@ impl WsClient {
         key: &ed25519_dalek::Keypair,
         event_tx: Option<Sender<ServerCommand>>,
     ) -> Result<Self, ClientError> {
-        let pk = base64::encode_config(key.public, base64::URL_SAFE_NO_PAD);
+        let pk = BASE64_URL_SAFE_NO_PAD.encode(key.public);
         let proto = if config.use_tls { "wss://" } else { "ws://" };
         let ws_url = format!("{}{}/ws/{}", proto, &config.server_addr, pk);
         let ws_stream = Self::connect(&ws_url).await?;
@@ -58,7 +59,7 @@ impl WsClient {
 
         {
             let write = write.clone();
-            let _ = spawn(async move {
+            spawn(async move {
                 Self::recv_messages(read, request_rx, response_tx, event_tx, ws_url, write).await
             });
         }
@@ -275,7 +276,7 @@ impl ApiClient for WsClient {
         signature: &[u8],
         payload: Vec<u8>,
     ) -> Result<Bytes, ClientError> {
-        let signature = base64::encode_config(signature, base64::URL_SAFE_NO_PAD).into_bytes();
+        let signature = BASE64_URL_SAFE_NO_PAD.encode(signature).into_bytes();
         let mut msg = signature.to_vec();
         msg.extend_from_slice(format!(" {handler} ").as_bytes());
         msg.extend_from_slice(&payload);

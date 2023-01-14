@@ -5,6 +5,7 @@ use aegislib::crypto::check_signature;
 use anyhow::anyhow;
 use axum::extract::{ConnectInfo, FromRequestParts, OriginalUri, Path};
 use axum::response::{IntoResponse, Response};
+use base64::prelude::*;
 use futures::future::Future;
 use futures::TryFutureExt;
 use http::{Request, StatusCode};
@@ -81,7 +82,7 @@ where
                     };
                 let device_pk = params
                     .get("device_pk")
-                    .and_then(|pk| base64::decode_config(pk, base64::URL_SAFE_NO_PAD).ok())
+                    .and_then(|pk| BASE64_URL_SAFE_NO_PAD.decode(pk).ok())
                     .and_then(|pk| ed25519_dalek::PublicKey::from_bytes(&pk).ok());
                 let device_pk = match device_pk {
                     Some(device_pk) => device_pk.to_owned(),
@@ -104,7 +105,7 @@ where
                 let bearer = auth_header
                     .as_bytes()
                     .strip_prefix(b"Bearer ")
-                    .and_then(|bearer| base64::decode_config(bearer, base64::URL_SAFE_NO_PAD).ok());
+                    .and_then(|bearer| BASE64_URL_SAFE_NO_PAD.decode(bearer).ok());
                 let randomized_signature = match bearer {
                     Some(bearer) => bearer,
                     _ => bail!(StatusCode::FORBIDDEN, "Invalid Authorization header"),

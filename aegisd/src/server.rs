@@ -4,8 +4,7 @@ use crate::handler::device::device_handler_iter;
 use crate::handler::root::{health, register, websocket_upgrade};
 use crate::middleware::{AdminAuthLayer, DeviceAuthLayer};
 use anyhow::Result;
-use axum::routing::{get, post};
-use axum::Router;
+use axum::routing::{get, post, Router};
 use sqlx::PgPool;
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
@@ -13,24 +12,27 @@ use tower_http::compression::CompressionLayer;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, TraceLayer};
 use tracing::{info, Level};
 
-pub async fn make_router(db: PgPool, config: &Config) -> Result<Router<PgPool>> {
-    let mut app = Router::with_state(db.clone())
+pub async fn make_router(db: PgPool, config: &Config) -> Result<Router> {
+    let mut app = Router::new()
         .route("/health", get(health))
         .route("/ws/:device_pk", get(websocket_upgrade))
-        .route("/register/:device_pk/name/:name", post(register));
+        .route("/register/:device_pk/name/:name", post(register))
+        .with_state::<()>(db.clone());
 
     let admin_router = admin_handler_iter()
-        .fold(Router::with_state(db.clone()), |router, handler| {
+        .fold(Router::new(), |router, handler| {
             router.route(handler.path, post(handler.http_handler))
         })
-        .layer(AdminAuthLayer::new(config.clone()));
+        .layer(AdminAuthLayer::new(config.clone()))
+        .with_state(db.clone());
     app = app.nest("/admin", admin_router);
 
     let device_router = device_handler_iter()
-        .fold(Router::with_state(db.clone()), |router, handler| {
+        .fold(Router::new(), |router, handler| {
             router.route(handler.path, post(handler.http_handler))
         })
-        .layer(DeviceAuthLayer::new(db));
+        .layer(DeviceAuthLayer::new(db.clone()))
+        .with_state(db);
     app = app.nest("/device/:device_pk", device_router);
 
     app = app.layer(
@@ -57,7 +59,7 @@ pub async fn run_server(db: PgPool, config: &Config) -> Result<()> {
 
 #[cfg(test)]
 pub struct TestServer {
-    pub app: Router<PgPool>,
+    pub app: Router,
     pub config: Config,
     pub root_key: ed25519_dalek::Keypair,
 }

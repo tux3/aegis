@@ -5,6 +5,7 @@ use crate::command::device::{
 use crate::command::server::ServerCommand;
 use crate::crypto::randomized_signature;
 use anyhow::{anyhow, Error};
+use base64::prelude::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tokio::sync::mpsc::Sender;
@@ -25,7 +26,7 @@ impl DeviceClient {
         event_tx: Option<Sender<ServerCommand>>,
     ) -> Result<Self, (ed25519_dalek::Keypair, ClientError)> {
         let api_base = if config.use_rest {
-            let dev_pk = base64::encode_config(key.public, base64::URL_SAFE_NO_PAD);
+            let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(key.public);
             format!("/device/{dev_pk}/")
         } else {
             String::new()

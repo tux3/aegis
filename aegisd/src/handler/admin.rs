@@ -183,17 +183,18 @@ mod test {
     use anyhow::anyhow;
     use axum::body::Bytes;
     use axum::response::Response;
+    use base64::prelude::*;
     use ed25519_dalek::Keypair;
     use http::{Request, StatusCode};
     use hyper::Body;
     use serde::de::DeserializeOwned;
     use serde::Serialize;
     use sqlx::PgPool;
-    use tower::Service;
+    use tower_service::Service;
 
     fn signed_request(url: &str, body: Bytes, key: &Keypair) -> Request<Body> {
         let sig = randomized_signature(key, url.as_bytes(), body.as_ref());
-        let sig = base64::encode_config(sig, base64::URL_SAFE_NO_PAD);
+        let sig = BASE64_URL_SAFE_NO_PAD.encode(sig);
         Request::post(url)
             .header("Authorization", "Bearer ".to_string() + &sig)
             .body(body.into())
@@ -266,7 +267,7 @@ mod test {
 
         let conn = &mut db.acquire().await?;
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         insert_test_pending_device(conn, device_pk.clone(), "test".into()).await?;
 
         let devs: Vec<PendingDevice> =
@@ -282,7 +283,7 @@ mod test {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         insert_test_pending_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(&mut server, "/admin/confirm_pending_device", "test").await?;
@@ -301,7 +302,7 @@ mod test {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         insert_test_pending_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(&mut server, "/admin/delete_pending_device", "test").await?;
@@ -321,7 +322,7 @@ mod test {
 
         let conn = &mut db.acquire().await?;
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
         let devs: Vec<RegisteredDevice> =
@@ -337,7 +338,7 @@ mod test {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(&mut server, "/admin/delete_registered_device", "test").await?;
@@ -350,7 +351,7 @@ mod test {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
         let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = base64::encode_config(device_key.public.as_ref(), base64::URL_SAFE_NO_PAD);
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(

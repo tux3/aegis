@@ -3,6 +3,7 @@ use crate::error::{bail, Error};
 use aegislib::crypto::check_signature;
 use axum::extract::{ConnectInfo, OriginalUri};
 use axum::response::{IntoResponse, Response};
+use base64::prelude::*;
 use ed25519_dalek::PublicKey;
 use futures::TryFutureExt;
 use http::{Request, StatusCode};
@@ -74,7 +75,7 @@ where
                 let bearer = auth_header
                     .as_bytes()
                     .strip_prefix(b"Bearer ")
-                    .and_then(|bearer| base64::decode_config(bearer, base64::URL_SAFE_NO_PAD).ok());
+                    .and_then(|bearer| BASE64_URL_SAFE_NO_PAD.decode(bearer).ok());
                 let randomized_signature = match bearer {
                     Some(bearer) => bearer,
                     _ => bail!(StatusCode::FORBIDDEN, "Invalid Authorization header"),

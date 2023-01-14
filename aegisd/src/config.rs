@@ -1,3 +1,4 @@
+use base64::prelude::*;
 use ed25519_dalek::PublicKey;
 use serde::de::{Error, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer};
@@ -57,7 +58,8 @@ where
         where
             E: Error,
         {
-            let bytes = base64::decode_config(v, base64::URL_SAFE_NO_PAD)
+            let bytes = BASE64_URL_SAFE_NO_PAD
+                .decode(v)
                 .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
             PublicKey::from_bytes(&bytes).map_err(|_| Error::invalid_length(bytes.len(), &self))
         }

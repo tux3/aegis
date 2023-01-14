@@ -1,6 +1,7 @@
 use crate::client::{ApiClient, ClientConfig, ClientError, ClientHttpError};
 use anyhow::{Error, Result};
 use async_trait::async_trait;
+use base64::prelude::*;
 use bytes::Bytes;
 use reqwest::Client;
 
@@ -31,7 +32,7 @@ impl ApiClient for RestClient {
         signature: &[u8],
         payload: Vec<u8>,
     ) -> Result<Bytes, ClientError> {
-        let signature = base64::encode_config(signature, base64::URL_SAFE_NO_PAD);
+        let signature = BASE64_URL_SAFE_NO_PAD.encode(signature);
 
         let url = format!("{}{}", &self.base_url, handler);
         let reply = self

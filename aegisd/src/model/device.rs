@@ -1,6 +1,7 @@
 use crate::handler::device::DeviceId;
 use aegislib::command::device::StatusReply;
 use anyhow::{bail, Result};
+use base64::prelude::*;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use sqlx::{Connection, PgConnection};
 
@@ -197,7 +198,7 @@ pub async fn get_dev_id_by_pk(
     conn: &mut PgConnection,
     pubkey: &ed25519_dalek::PublicKey,
 ) -> Result<i32> {
-    let pubkey = base64::encode_config(pubkey.as_ref(), base64::URL_SAFE_NO_PAD);
+    let pubkey = BASE64_URL_SAFE_NO_PAD.encode(pubkey.as_ref());
     let id = sqlx::query_scalar!(
         "SELECT id FROM device WHERE pending = FALSE AND pubkey = $1",
         pubkey

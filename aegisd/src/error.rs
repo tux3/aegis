@@ -50,9 +50,9 @@ impl IntoResponse for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Anyhow(e) => write!(f, "{}", e),
+            Self::Anyhow(e) => write!(f, "{e}"),
             Self::Response(_code, body) => write!(f, "{body}"),
-            Self::Axum(e) => write!(f, "{}", e),
+            Self::Axum(e) => write!(f, "{e}"),
         }
     }
 }
