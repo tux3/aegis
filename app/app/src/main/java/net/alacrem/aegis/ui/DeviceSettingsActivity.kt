@@ -314,7 +314,7 @@ class DeviceSettingsActivity : AppCompatActivity(), PopupMenu.OnMenuItemClickLis
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.home -> {
+            android.R.id.home -> {
                 NavUtils.navigateUpFromSameTask(this)
                 true
             }

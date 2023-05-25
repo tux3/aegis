@@ -1,0 +1,23 @@
+[versions]
+androix-lifecycle-ktx = "2.6.1"
+
+[plugins]
+android-application = { id = "com.android.application", version = "8.0.2" }
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version = "1.8.21"}
+
+[libraries]
+androidx-annotation = { module = "androidx.annotation:annotation", version = "1.6.0" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.6.1" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version = "2.1.4" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.10.1" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version = "3.5.1" }
+androidx-junit = { module = "androidx.test.ext:junit", version = "1.1.5" }
+androidx-preference-ktx = { module = "androidx.preference:preference-ktx", version = "1.2.0" }
+androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version = "1.1.0" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androix-lifecycle-ktx" }
+androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androix-lifecycle-ktx" }
+androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "androix-lifecycle-ktx" }
+jna = { module = "net.java.dev.jna:jna", version = "5.13.0" }
+junit = { module = "junit:junit", version = "4.13.2" }
+material = { module = "com.google.android.material:material", version = "1.9.0" }
+
