@@ -9,4 +9,4 @@ use crate::command::device::*;
 use crate::command::server::*;
 use crate::crypto::RootKeys;
 
-uniffi_macros::include_scaffolding!("client");
+uniffi::include_scaffolding!("client");

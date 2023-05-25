@@ -61,12 +61,14 @@ android.applicationVariants.all { variant ->
     variant.javaCompileProvider.get().dependsOn(libTask)
 
     def genTask = tasks.register("generate${variant.name.capitalize()}UniFFIBindings", Exec) {
-        workingDir "${project.projectDir}"
+        workingDir "${project.rootDir}/.."
+        def aegislibPath = "${project.rootDir}/../aegislib"
+        def udlPath = "${aegislibPath}/src/client.udl"
 
-        def udlPath = "${project.rootDir}/../aegislib/src/client.udl"
         println "Generating binding for "+udlPath
         // Runs the bindings generation, note that you must have uniffi-bindgen installed and in your PATH environment variable
-        commandLine 'uniffi-bindgen', 'generate', udlPath, '--language', 'kotlin', '--out-dir', "${buildDir}/generated/source/uniffi/${variant.name}/java"
+        commandLine 'cargo', 'run', '--features=ffi', '--bin=uniffi-bindgen',
+                    'generate', udlPath, '--language', 'kotlin', '--out-dir', "${buildDir}/generated/source/uniffi/${variant.name}/java"
     }
     variant.javaCompileProvider.get().dependsOn(genTask)
     def sourceSet = variant.sourceSets.find { it.name == variant.name }
