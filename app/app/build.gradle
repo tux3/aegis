@@ -10,12 +10,12 @@ android {
             keyAlias 'key0'
         }
     }
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "net.alacrem.aegis"
         minSdk 33
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
@@ -52,7 +52,7 @@ android.applicationVariants.all { variant ->
         var args = ['cargo', 'ndk', '--manifest-path=../aegislib/Cargo.toml',
                     '-tx86_64', '-tarm64-v8a',
                     '-o', 'app/src/main/jniLibs/',
-                    'build', '--features=ffi']
+                    'build', '--features=ffi,uniffi/cli']
         if (variant.name == "release")
             args.add("--release")
         println "Compiling native aegis library: ${args}"
@@ -67,7 +67,7 @@ android.applicationVariants.all { variant ->
 
         println "Generating binding for "+udlPath
         // Runs the bindings generation, note that you must have uniffi-bindgen installed and in your PATH environment variable
-        commandLine 'cargo', 'run', '--features=ffi', '--bin=uniffi-bindgen',
+        commandLine 'cargo', 'run', '--features=ffi,uniffi/cli', '--bin=uniffi-bindgen',
                     'generate', udlPath, '--language', 'kotlin', '--out-dir', "${buildDir}/generated/source/uniffi/${variant.name}/java"
     }
     variant.javaCompileProvider.get().dependsOn(genTask)
