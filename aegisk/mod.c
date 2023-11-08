@@ -7,7 +7,7 @@
 #include "monitor.h"
 #include "sysfs.h"
 
-static void __cleanup(void)
+static void cleanup_impl(void)
 {
 	pr_debug("Starting module cleanup\n");
 	aegisc_monitor_cleanup();
@@ -17,7 +17,7 @@ static void __cleanup(void)
 
 static void __exit cleanup(void)
 {
-	__cleanup();
+	cleanup_impl();
 }
 
 static int __init init(void)
@@ -39,7 +39,7 @@ static int __init init(void)
 	return 0;
 
 fail:
-	__cleanup();
+	cleanup_impl();
 	return ret;
 }
 
