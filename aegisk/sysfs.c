@@ -16,6 +16,7 @@ enum { AEGISK_POWEROFF = 0, AEGISK_REBOOT };
 
 static struct task_struct *aegisk_pm_task;
 static struct kobject *aegisk_kobj;
+// May be null
 static u8* locked_down;
 static int lock_vt_flag;
 static u64 insert_time_utc_ns;
@@ -124,6 +125,9 @@ static struct kobj_attribute insert_time_attribute = __ATTR(
 static ssize_t lockdown_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
 {
+    if (!locked_down)
+        return -ENOENT;
+
 	return sysfs_emit(buf, "%d\n", *locked_down);
 }
 
@@ -137,6 +141,9 @@ static ssize_t lockdown_store(struct kobject *kobj, struct kobj_attribute *attr,
 
 	if (new < 0 || new > 2)
 		return -EINVAL;
+
+    if (!locked_down)
+        return -ENOENT;
 
 	pr_info("Set kernel_locked_down to %d\n", new);
 	*locked_down = new;
@@ -168,8 +175,6 @@ void aegisk_cleanup_sysfs(void)
 int aegisk_init_sysfs(void)
 {
 	locked_down = (u8*)module_kallsyms_lookup_name("kernel_locked_down");
-	if (!locked_down)
-		return -ENOENT;
 
 	insert_time_utc_ns = ktime_get_real_ns();
 	boot_time_ns = ktime_get_boottime_ns();
