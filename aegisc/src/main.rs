@@ -1,5 +1,3 @@
-#![feature(result_option_inspect)]
-
 mod client;
 mod config;
 mod device_key;

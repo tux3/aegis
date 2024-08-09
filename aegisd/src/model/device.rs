@@ -23,8 +23,8 @@ impl Device {
             self.pubkey,
             self.pending
         )
-        .execute(db)
-        .await?;
+            .execute(db)
+            .await?;
         Ok(())
     }
 }
@@ -51,7 +51,7 @@ impl PendingDevice {
 impl From<PendingDevice> for aegislib::command::admin::PendingDevice {
     fn from(dev: PendingDevice) -> Self {
         Self {
-            created_at: DateTime::<Utc>::from_utc(dev.created_at, Utc).into(),
+            created_at: DateTime::<Utc>::from_naive_utc_and_offset(dev.created_at, Utc).into(),
             name: dev.name,
             pubkey: dev.pubkey,
         }
@@ -62,7 +62,7 @@ impl From<Device> for aegislib::command::admin::RegisteredDevice {
     fn from(dev: Device) -> Self {
         Self {
             id: dev.id,
-            created_at: DateTime::<Utc>::from_utc(dev.created_at, Utc).into(),
+            created_at: DateTime::<Utc>::from_naive_utc_and_offset(dev.created_at, Utc).into(),
             name: dev.name,
             pubkey: dev.pubkey,
         }
@@ -81,7 +81,7 @@ pub struct Status {
 impl From<Status> for StatusReply {
     fn from(s: Status) -> Self {
         Self {
-            updated_at_timestamp: s.updated_at.timestamp() as u64,
+            updated_at_timestamp: s.updated_at.and_utc().timestamp() as u64,
             is_connected: crate::ws::ws_for_device(DeviceId(s.dev_id)).is_some(),
             vt_locked: s.vt_locked,
             ssh_locked: s.ssh_locked,
@@ -101,8 +101,8 @@ impl Status {
             self.ssh_locked,
             self.draw_decoy
         )
-        .execute(db)
-        .await?;
+            .execute(db)
+            .await?;
         Ok(())
     }
 }
@@ -133,8 +133,8 @@ pub async fn delete_pending(conn: &mut PgConnection, name: &str) -> Result<()> {
         "DELETE FROM device WHERE pending = TRUE AND name = $1",
         name
     )
-    .execute(conn)
-    .await?;
+        .execute(conn)
+        .await?;
     if result.rows_affected() != 1 {
         debug_assert_eq!(result.rows_affected(), 0); // name is UNIQUE
         bail!("Pending device '{}' not found", name);
@@ -149,8 +149,8 @@ pub async fn confirm_pending(conn: &mut PgConnection, name: &str) -> Result<()> 
          RETURNING id",
         name
     )
-    .fetch_one(&mut tx)
-    .await?;
+        .fetch_one(&mut *tx)
+        .await?;
     Status {
         dev_id: result.id,
         updated_at: Utc::now().naive_utc(),
@@ -158,8 +158,8 @@ pub async fn confirm_pending(conn: &mut PgConnection, name: &str) -> Result<()> 
         ssh_locked: false,
         draw_decoy: false,
     }
-    .insert(&mut tx)
-    .await?;
+        .insert(&mut tx)
+        .await?;
     tx.commit().await?;
     Ok(())
 }
@@ -185,8 +185,8 @@ pub async fn delete_registered(conn: &mut PgConnection, name: &str) -> Result<()
         "DELETE FROM device WHERE pending = FALSE AND name = $1",
         name
     )
-    .execute(conn)
-    .await?;
+        .execute(conn)
+        .await?;
     if result.rows_affected() != 1 {
         debug_assert_eq!(result.rows_affected(), 0); // name is UNIQUE
         bail!("Device '{}' not found", name);
@@ -203,8 +203,8 @@ pub async fn get_dev_id_by_pk(
         "SELECT id FROM device WHERE pending = FALSE AND pubkey = $1",
         pubkey
     )
-    .fetch_one(conn)
-    .await?;
+        .fetch_one(conn)
+        .await?;
     Ok(id)
 }
 
@@ -213,8 +213,8 @@ pub async fn get_dev_id_by_name(conn: &mut PgConnection, name: &str) -> Result<i
         "SELECT id FROM device WHERE pending = FALSE AND name = $1",
         name
     )
-    .fetch_one(conn)
-    .await?;
+        .fetch_one(conn)
+        .await?;
     Ok(id)
 }
 
@@ -256,8 +256,8 @@ pub async fn get_status(conn: &mut PgConnection, dev_id: i32) -> Result<Status> 
         "SELECT * FROM device_status WHERE dev_id = $1",
         dev_id
     )
-    .fetch_one(conn)
-    .await?;
+        .fetch_one(conn)
+        .await?;
     Ok(result)
 }
 
@@ -278,8 +278,8 @@ pub mod test {
             name,
             pubkey: device_pk,
         }
-        .insert(db)
-        .await?;
+            .insert(db)
+            .await?;
         Ok(())
     }
 

@@ -2,7 +2,7 @@ use crate::run_as::run_as_root;
 use aegislib::client::DeviceClient;
 use aegislib::command::device::{DeviceEvent, EventLogLevel};
 use anyhow::{bail, Result};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use nix::libc::pid_t;
 use std::path::Path;
 use std::thread::sleep;
@@ -63,11 +63,12 @@ pub fn get_insert_time() -> Result<InsertTime> {
         .map(|(l, r)| (l.parse::<u64>(), r.parse::<u64>()))
     {
         Ok(InsertTime {
-            insert_time: NaiveDateTime::from_timestamp_opt(
+            insert_time: DateTime::from_timestamp(
                 (l / 1_000_000_000) as i64,
                 (l % 1_000_000_000) as u32,
             )
-            .unwrap(),
+            .unwrap()
+            .naive_utc(),
             boot_to_insert_delay: Duration::from_millis(r / 1_000_000),
         })
     } else {
@@ -81,7 +82,7 @@ pub async fn log_insert_time(client: &mut DeviceClient) {
             let boot_to_insert_delay = humantime::format_duration(time.boot_to_insert_delay);
             if let Err(e) = client
                 .log_event(DeviceEvent {
-                    timestamp: time.insert_time.timestamp() as u64,
+                    timestamp: time.insert_time.and_utc().timestamp() as u64,
                     level: EventLogLevel::Info,
                     message: format!("Module inserted ({boot_to_insert_delay} since boot)"),
                 })

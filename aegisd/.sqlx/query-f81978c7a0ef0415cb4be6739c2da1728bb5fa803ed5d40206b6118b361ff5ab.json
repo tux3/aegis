@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM device WHERE pending = TRUE AND name = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f81978c7a0ef0415cb4be6739c2da1728bb5fa803ed5d40206b6118b361ff5ab"
+}

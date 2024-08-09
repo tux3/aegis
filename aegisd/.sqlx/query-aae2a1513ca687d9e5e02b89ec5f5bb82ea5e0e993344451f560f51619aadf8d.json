@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO device_cam_pics (dev_id, created_at, jpeg_data)\n             VALUES ($1, $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Timestamp",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aae2a1513ca687d9e5e02b89ec5f5bb82ea5e0e993344451f560f51619aadf8d"
+}

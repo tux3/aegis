@@ -14,7 +14,7 @@ pub struct DeviceCameraPicture {
 impl From<DeviceCameraPicture> for StoredCameraPicture {
     fn from(p: DeviceCameraPicture) -> Self {
         StoredCameraPicture {
-            created_at_timestamp: p.created_at.timestamp() as u64,
+            created_at_timestamp: p.created_at.and_utc().timestamp() as u64,
             jpeg_data: p.jpeg_data,
         }
     }

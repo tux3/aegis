@@ -42,7 +42,7 @@ pub async fn confirm_pending_device(db: &mut PgConnection, name: String) -> Resu
         db,
         dev_id,
         DeviceEvent {
-            timestamp: Utc::now().naive_utc().timestamp() as u64,
+            timestamp: Utc::now().timestamp() as u64,
             level: EventLogLevel::Info,
             message: "Device confirmed".into(),
         },
@@ -78,7 +78,7 @@ pub async fn set_status(db: &mut PgConnection, arg: SetStatusArg) -> Result<Stat
             db,
             dev_id,
             DeviceEvent {
-                timestamp: Utc::now().naive_utc().timestamp() as u64,
+                timestamp: Utc::now().timestamp() as u64,
                 level: EventLogLevel::Info,
                 message: format!("Status updated: {status:?}"),
             },
@@ -118,7 +118,7 @@ pub async fn delete_device_camera_pictures(db: &mut PgConnection, dev_name: Stri
         db,
         dev_id,
         DeviceEvent {
-            timestamp: Utc::now().naive_utc().timestamp() as u64,
+            timestamp: Utc::now().timestamp() as u64,
             level: EventLogLevel::Debug,
             message: "Deleted stored camera pictures".into(),
         },
@@ -144,7 +144,7 @@ pub async fn send_power_command(db: &mut PgConnection, arg: SendPowerCommandArg)
         db,
         dev_id,
         DeviceEvent {
-            timestamp: Utc::now().naive_utc().timestamp() as u64,
+            timestamp: Utc::now().timestamp() as u64,
             level: EventLogLevel::Info,
             message: format!("Sent power command: {:?}", arg.command),
         },

@@ -42,18 +42,18 @@ pub async fn store_camera_picture(
         created_at: now,
         jpeg_data: args.jpeg_data,
     }
-    .insert(db)
-    .await?;
+        .insert(db)
+        .await?;
     let _ = events::insert(
         db,
         dev_id.0,
         DeviceEvent {
-            timestamp: now.timestamp() as u64,
+            timestamp: now.and_utc().timestamp() as u64,
             level: EventLogLevel::Info,
             message: format!("Camera picture uploaded ({pic_size_kb}kiB)"),
         },
     )
-    .await;
+        .await;
     Ok(StoreCameraPictureReply {})
 }
 

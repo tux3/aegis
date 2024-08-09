@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM device_status WHERE dev_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "dev_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "updated_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 2,
+        "name": "vt_locked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "ssh_locked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "draw_decoy",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "af799e89b5f3697bf87ebccf8b757f62eae66c76254fdaf1cb93e0673759145e"
+}
