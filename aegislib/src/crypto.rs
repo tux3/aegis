@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use signature::Signature;
 use std::path::Path;
 
-pub use ed25519_dalek::Keypair;
+pub use ed25519_dalek::SigningKey;
 
 // Random buffer prepended to the signature. Doesn't actually prevent any kind of replay!
 // Mostly this serves to inject random *somewhere* (hey, we get websocket message IDs for free!)
@@ -12,7 +12,7 @@ const SIGNATURE_RANDOM_BUF_LEN: usize = 16;
 const SIGNATURE_FULL_LEN: usize = SIGNATURE_RANDOM_BUF_LEN + ed25519_dalek::SIGNATURE_LENGTH;
 
 pub fn randomized_signature(
-    keypair: &ed25519_dalek::Keypair,
+    keypair: &ed25519_dalek::SigningKey,
     route: &[u8],
     payload: &[u8],
 ) -> Vec<u8> {
@@ -24,14 +24,14 @@ pub fn randomized_signature(
     hasher.update(payload);
     let signature = keypair.sign_prehashed(hasher, None).unwrap();
     let mut result = random_buf.to_vec();
-    result.extend_from_slice(signature.as_bytes());
+    result.extend_from_slice(&signature.to_bytes());
 
     debug_assert_eq!(result.len(), SIGNATURE_FULL_LEN);
     result
 }
 
 pub fn check_signature(
-    public_key: &ed25519_dalek::PublicKey,
+    public_key: &ed25519_dalek::VerifyingKey,
     randomized_signature: &[u8],
     route: &[u8],
     payload: &[u8],
@@ -40,11 +40,11 @@ pub fn check_signature(
         return false;
     }
     let random_buf = &randomized_signature[..SIGNATURE_RANDOM_BUF_LEN];
-    let signature = &randomized_signature[SIGNATURE_RANDOM_BUF_LEN..];
-    let signature = match ed25519_dalek::Signature::from_bytes(signature) {
+    let signature = match randomized_signature[SIGNATURE_RANDOM_BUF_LEN..].try_into() {
         Ok(sig) => sig,
         Err(_) => return false,
     };
+    let signature = ed25519_dalek::Signature::from_bytes(signature);
 
     let mut hasher = ed25519_dalek::Sha512::new();
     hasher.update(random_buf);
@@ -55,30 +55,26 @@ pub fn check_signature(
         .is_ok()
 }
 
-pub fn random_sign_keypair() -> ed25519_dalek::Keypair {
+pub fn random_sign_keypair() -> ed25519_dalek::SigningKey {
     let sk = &mut [0u8; ed25519_dalek::SECRET_KEY_LENGTH];
     getrandom::getrandom(sk).unwrap();
-    let sk = ed25519_dalek::SecretKey::from_bytes(sk).unwrap();
-    ed25519_dalek::Keypair {
-        public: ed25519_dalek::PublicKey::from(&sk),
-        secret: sk,
-    }
+    SigningKey::from_bytes(sk)
 }
 
-pub fn sign_keypair_from_file(path: impl AsRef<Path>) -> Result<ed25519_dalek::Keypair> {
-    let key = std::fs::read(path.as_ref())?;
-    match ed25519_dalek::Keypair::from_bytes(&key) {
+pub fn sign_keypair_from_file(path: impl AsRef<Path>) -> Result<ed25519_dalek::SigningKey> {
+    let key = &std::fs::read(path.as_ref())?.try_into();
+    match key {
         Err(_) => bail!(
             "Invalid private signature key file: {}",
             path.as_ref().display()
         ),
-        Ok(k) => Ok(k),
+        Ok(k) => Ok(ed25519_dalek::SigningKey::from_bytes(k)),
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct RootKeys {
-    pub sig: ed25519_dalek::Keypair,
+    pub sig: ed25519_dalek::SigningKey,
     pub enc: chacha20poly1305::Key,
 }
 
@@ -115,13 +111,10 @@ impl RootKeys {
             .hash_password_into(password.as_bytes(), salt, secret_buf)
             .unwrap();
 
-        let sig_skey =
-            ed25519_dalek::SecretKey::from_bytes(&secret_buf[..ed25519_dalek::SECRET_KEY_LENGTH])
-                .unwrap();
-        let sig = ed25519_dalek::Keypair {
-            public: ed25519_dalek::PublicKey::from(&sig_skey),
-            secret: sig_skey,
-        };
+        let sig_skey = &secret_buf[..ed25519_dalek::SECRET_KEY_LENGTH]
+            .try_into()
+            .unwrap();
+        let sig = ed25519_dalek::SigningKey::from_bytes(sig_skey);
         let enc =
             chacha20poly1305::Key::from_slice(&secret_buf[ed25519_dalek::SECRET_KEY_LENGTH..])
                 .to_owned();

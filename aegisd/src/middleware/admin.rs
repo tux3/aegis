@@ -4,7 +4,7 @@ use aegislib::crypto::check_signature;
 use axum::extract::{ConnectInfo, OriginalUri};
 use axum::response::{IntoResponse, Response};
 use base64::prelude::*;
-use ed25519_dalek::PublicKey;
+use ed25519_dalek::VerifyingKey;
 use futures::TryFutureExt;
 use http::{Request, StatusCode};
 use hyper::Body;
@@ -42,7 +42,7 @@ impl<S> Layer<S> for AdminAuthLayer {
 #[derive(Clone)]
 pub struct AdminAuthMiddleware<S> {
     inner: S,
-    root_pk: PublicKey,
+    root_pk: VerifyingKey,
 }
 
 impl<S> Service<Request<Body>> for AdminAuthMiddleware<S>

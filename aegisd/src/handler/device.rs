@@ -42,8 +42,8 @@ pub async fn store_camera_picture(
         created_at: now,
         jpeg_data: args.jpeg_data,
     }
-        .insert(db)
-        .await?;
+    .insert(db)
+    .await?;
     let _ = events::insert(
         db,
         dev_id.0,
@@ -53,7 +53,7 @@ pub async fn store_camera_picture(
             message: format!("Camera picture uploaded ({pic_size_kb}kiB)"),
         },
     )
-        .await;
+    .await;
     Ok(StoreCameraPictureReply {})
 }
 
@@ -68,16 +68,15 @@ mod test {
     use crate::error::Result;
     use crate::model::device::test::insert_test_device;
     use crate::server::make_test_server;
-    use aegislib::crypto::randomized_signature;
+    use aegislib::crypto::{randomized_signature, SigningKey};
     use axum::body::Bytes;
     use base64::prelude::*;
-    use ed25519_dalek::Keypair;
     use http::{Request, Response, StatusCode};
     use hyper::Body;
     use sqlx::PgPool;
     use tower::Service;
 
-    fn signed_request<T: Into<Bytes>>(url: &str, body: T, key: &Keypair) -> Request<Body> {
+    fn signed_request<T: Into<Bytes>>(url: &str, body: T, key: &SigningKey) -> Request<Body> {
         let body = body.into();
         let sig = randomized_signature(key, url.as_bytes(), body.as_ref());
         let sig = BASE64_URL_SAFE_NO_PAD.encode(sig);
@@ -89,8 +88,8 @@ mod test {
 
     #[sqlx::test]
     async fn missing_auth_header(db: PgPool) -> Result<()> {
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         let conn = &mut db.acquire().await?;
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
@@ -108,13 +107,13 @@ mod test {
 
     #[sqlx::test]
     async fn bad_auth_header(db: PgPool) -> Result<()> {
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         let conn = &mut db.acquire().await?;
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
         let mut server = make_test_server(db).await?;
-        let bad_key = Keypair::generate(&mut rand::thread_rng());
+        let bad_key = SigningKey::generate(&mut rand::thread_rng());
         let req = signed_request(&format!("/device/{device_pk}/status"), Vec::new(), &bad_key);
         let mut resp: Response<_> = server.app.call(req).await?;
         assert_eq!(resp.status(), StatusCode::FORBIDDEN);
@@ -126,8 +125,8 @@ mod test {
 
     #[sqlx::test]
     async fn good_auth_header(db: PgPool) -> Result<()> {
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         let conn = &mut db.acquire().await?;
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 

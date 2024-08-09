@@ -8,7 +8,7 @@ use axum::body::Bytes;
 use axum::extract::ws::{close_code, CloseFrame, Message, WebSocket};
 use base64::prelude::*;
 use dashmap::DashMap;
-use ed25519_dalek::PublicKey;
+use ed25519_dalek::VerifyingKey;
 use futures::pin_mut;
 use futures::StreamExt;
 use sqlx::PgPool;
@@ -64,7 +64,7 @@ async fn send_server_command(ws: &mut WebSocket, cmd: ServerCommand) -> Result<(
 
 pub struct WsConn {
     db: PgPool,
-    device_pk: PublicKey,
+    device_pk: VerifyingKey,
     device_id: DeviceId,
     last_heartbeat: Instant,
     remote_addr_untrusted: String,
@@ -73,7 +73,7 @@ pub struct WsConn {
 impl WsConn {
     pub fn new(
         db: PgPool,
-        device_pk: PublicKey,
+        device_pk: VerifyingKey,
         device_id: DeviceId,
         remote_addr_untrusted: String,
     ) -> WsConn {
@@ -234,12 +234,12 @@ impl WsConn {
             Ok(reply) => send_response(ws, true, msg_id, &reply).await,
             Err(e) => send_response(ws, false, msg_id, format!("{e}").as_bytes()).await,
         }
-        .map_err(|e| {
-            Some(CloseFrame {
-                code: close_code::ERROR,
-                reason: format!("Failed to send handler response: {e}").into(),
-            })
-        })?;
+            .map_err(|e| {
+                Some(CloseFrame {
+                    code: close_code::ERROR,
+                    reason: format!("Failed to send handler response: {e}").into(),
+                })
+            })?;
         Ok(())
     }
 }

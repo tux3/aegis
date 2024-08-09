@@ -11,7 +11,7 @@ use serde::Serialize;
 
 pub struct AdminClient {
     client: RestClient,
-    key: ed25519_dalek::Keypair,
+    key: ed25519_dalek::SigningKey,
 }
 
 impl AdminClient {
@@ -21,7 +21,7 @@ impl AdminClient {
             client,
             // No Clone, because let's frustrate people until they decide to use libsodium instead :(
             // Yes, we make a copy of a key. Hope no one dumps my ram before both copies get zeroed...
-            key: ed25519_dalek::Keypair::from_bytes(&keys.sig.to_bytes()).unwrap(),
+            key: ed25519_dalek::SigningKey::from_bytes(&keys.sig.to_bytes()),
         })
     }
 

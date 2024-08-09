@@ -1,5 +1,5 @@
 use base64::prelude::*;
-use ed25519_dalek::PublicKey;
+use ed25519_dalek::VerifyingKey;
 use serde::de::{Error, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer};
 use std::fmt::Formatter;
@@ -15,7 +15,7 @@ pub struct Config {
     #[serde(default = "db_max_conn_default")]
     pub db_max_conn: u32,
     #[serde(deserialize_with = "deserialize_pub_sig_key")]
-    pub root_public_signature_key: PublicKey,
+    pub root_public_signature_key: VerifyingKey,
 }
 
 impl Config {
@@ -25,7 +25,7 @@ impl Config {
     }
 
     #[cfg(test)]
-    pub(crate) fn test_config(test_root_public_key: PublicKey) -> Self {
+    pub(crate) fn test_config(test_root_public_key: VerifyingKey) -> Self {
         Self {
             port: 8080,
             db_host: ":memory:".to_string(),
@@ -42,13 +42,13 @@ fn db_max_conn_default() -> u32 {
     16
 }
 
-fn deserialize_pub_sig_key<'de, D>(deser: D) -> Result<PublicKey, D::Error>
+fn deserialize_pub_sig_key<'de, D>(deser: D) -> Result<VerifyingKey, D::Error>
 where
     D: Deserializer<'de>,
 {
     struct StrVisitor {}
     impl<'de> Visitor<'de> for StrVisitor {
-        type Value = PublicKey;
+        type Value = VerifyingKey;
 
         fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
             write!(formatter, "a base64 urlsafe nopad public signature key")
@@ -61,7 +61,12 @@ where
             let bytes = BASE64_URL_SAFE_NO_PAD
                 .decode(v)
                 .map_err(|_| Error::invalid_value(Unexpected::Str(v), &self))?;
-            PublicKey::from_bytes(&bytes).map_err(|_| Error::invalid_length(bytes.len(), &self))
+
+            let bad_len = bytes.len();
+            let key_bytes = bytes
+                .try_into()
+                .map_err(|_| Error::invalid_length(bad_len, &self))?;
+            VerifyingKey::from_bytes(&key_bytes).map_err(|_| Error::invalid_length(bad_len, &self))
         }
     }
 

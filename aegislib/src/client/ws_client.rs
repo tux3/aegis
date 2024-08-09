@@ -43,10 +43,10 @@ impl WsClient {
     // Websockets are only compatible with device handlers
     pub async fn new_device_client(
         config: &ClientConfig,
-        key: &ed25519_dalek::Keypair,
+        key: &ed25519_dalek::SigningKey,
         event_tx: Option<Sender<ServerCommand>>,
     ) -> Result<Self, ClientError> {
-        let pk = BASE64_URL_SAFE_NO_PAD.encode(key.public);
+        let pk = BASE64_URL_SAFE_NO_PAD.encode(key.verifying_key());
         let proto = if config.use_tls { "wss://" } else { "ws://" };
         let ws_url = format!("{}{}/ws/{}", proto, &config.server_addr, pk);
         let ws_stream = Self::connect(&ws_url).await?;

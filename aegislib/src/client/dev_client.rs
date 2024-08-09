@@ -15,18 +15,18 @@ pub struct DeviceClient {
     client: Box<dyn ApiClient>,
     api_base: String,
     config: ClientConfig,
-    key: ed25519_dalek::Keypair,
+    key: ed25519_dalek::SigningKey,
     event_tx: Option<Sender<ServerCommand>>,
 }
 
 impl DeviceClient {
     pub async fn new(
         config: &ClientConfig,
-        key: ed25519_dalek::Keypair,
+        key: ed25519_dalek::SigningKey,
         event_tx: Option<Sender<ServerCommand>>,
-    ) -> Result<Self, (ed25519_dalek::Keypair, ClientError)> {
+    ) -> Result<Self, (ed25519_dalek::SigningKey, ClientError)> {
         let api_base = if config.use_rest {
-            let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(key.public);
+            let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(key.verifying_key());
             format!("/device/{dev_pk}/")
         } else {
             String::new()
@@ -46,7 +46,7 @@ impl DeviceClient {
 
     async fn build_client(
         config: &ClientConfig,
-        key: &ed25519_dalek::Keypair,
+        key: &ed25519_dalek::SigningKey,
         event_tx: Option<Sender<ServerCommand>>,
     ) -> Result<Box<dyn ApiClient>, ClientError> {
         Ok(if config.use_rest {

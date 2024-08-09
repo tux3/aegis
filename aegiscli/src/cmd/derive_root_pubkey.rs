@@ -15,7 +15,7 @@ pub async fn derive_root_pubkey(_config: &Config, args: &ArgMatches) -> Result<(
                 .unwrap()
         });
     let keys = RootKeys::derive(&password);
-    let pubkey = BASE64_URL_SAFE_NO_PAD.encode(keys.sig.public);
+    let pubkey = BASE64_URL_SAFE_NO_PAD.encode(keys.sig.verifying_key());
     println!("Root public signature key: {pubkey}");
     Ok(())
 }

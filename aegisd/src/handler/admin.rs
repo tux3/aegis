@@ -179,12 +179,11 @@ mod test {
     use crate::model::device::test::{insert_test_device, insert_test_pending_device};
     use crate::server::{make_test_server, TestServer};
     use aegislib::command::admin::{PendingDevice, RegisteredDevice, SetStatusArg};
-    use aegislib::crypto::randomized_signature;
+    use aegislib::crypto::{randomized_signature, SigningKey};
     use anyhow::anyhow;
     use axum::body::Bytes;
     use axum::response::Response;
     use base64::prelude::*;
-    use ed25519_dalek::Keypair;
     use http::{Request, StatusCode};
     use hyper::Body;
     use serde::de::DeserializeOwned;
@@ -192,7 +191,7 @@ mod test {
     use sqlx::PgPool;
     use tower_service::Service;
 
-    fn signed_request(url: &str, body: Bytes, key: &Keypair) -> Request<Body> {
+    fn signed_request(url: &str, body: Bytes, key: &SigningKey) -> Request<Body> {
         let sig = randomized_signature(key, url.as_bytes(), body.as_ref());
         let sig = BASE64_URL_SAFE_NO_PAD.encode(sig);
         Request::post(url)
@@ -240,7 +239,7 @@ mod test {
     #[sqlx::test]
     async fn bad_auth_header(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db).await?;
-        let bad_key = Keypair::generate(&mut rand::thread_rng());
+        let bad_key = SigningKey::generate(&mut rand::thread_rng());
         let req = signed_request("/admin/list_pending_devices", Bytes::new(), &bad_key);
         let mut resp = server.app.call(req).await?;
         assert_eq!(resp.status(), StatusCode::FORBIDDEN);
@@ -266,8 +265,8 @@ mod test {
         assert!(devs.is_empty());
 
         let conn = &mut db.acquire().await?;
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         insert_test_pending_device(conn, device_pk.clone(), "test".into()).await?;
 
         let devs: Vec<PendingDevice> =
@@ -282,8 +281,8 @@ mod test {
     async fn confirm_pending(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         insert_test_pending_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(&mut server, "/admin/confirm_pending_device", "test").await?;
@@ -301,8 +300,8 @@ mod test {
     async fn delete_pending(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         insert_test_pending_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(&mut server, "/admin/delete_pending_device", "test").await?;
@@ -321,8 +320,8 @@ mod test {
         assert!(devs.is_empty());
 
         let conn = &mut db.acquire().await?;
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
         let devs: Vec<RegisteredDevice> =
@@ -337,8 +336,8 @@ mod test {
     async fn delete_registered(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(&mut server, "/admin/delete_registered_device", "test").await?;
@@ -350,8 +349,8 @@ mod test {
     async fn set_status(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db.clone()).await?;
         let conn = &mut db.acquire().await?;
-        let device_key = Keypair::generate(&mut rand::thread_rng());
-        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.public.as_ref());
+        let device_key = SigningKey::generate(&mut rand::thread_rng());
+        let device_pk = BASE64_URL_SAFE_NO_PAD.encode(device_key.verifying_key().as_ref());
         insert_test_device(conn, device_pk.clone(), "test".into()).await?;
 
         request(

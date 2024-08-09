@@ -83,7 +83,8 @@ where
                 let device_pk = params
                     .get("device_pk")
                     .and_then(|pk| BASE64_URL_SAFE_NO_PAD.decode(pk).ok())
-                    .and_then(|pk| ed25519_dalek::PublicKey::from_bytes(&pk).ok());
+                    .and_then(|pk| pk.try_into().ok())
+                    .and_then(|pk| ed25519_dalek::VerifyingKey::from_bytes(&pk).ok());
                 let device_pk = match device_pk {
                     Some(device_pk) => device_pk.to_owned(),
                     None => bail!(StatusCode::BAD_REQUEST, "Invalid device_pk"),

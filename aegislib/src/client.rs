@@ -18,7 +18,8 @@ mod ws_client;
 pub use ws_client::*;
 
 #[derive(Debug, Clone, Error)]
-#[error("Client HTTP error {}: {}", u16::from(*.code), .message.as_deref().unwrap_or_else(|| .code.canonical_reason().unwrap_or("<unknown status code>")))]
+#[error("Client HTTP error {}: {}", u16::from(*.code), .message.as_deref().unwrap_or_else(|| .code.canonical_reason().unwrap_or("<unknown status code>"))
+)]
 pub struct ClientHttpError {
     pub code: StatusCode,
     message: Option<String>,
@@ -44,7 +45,7 @@ pub struct ClientConfig {
 pub async fn register_device(
     config: &ClientConfig,
     name: &str,
-    pk: &ed25519_dalek::PublicKey,
+    pk: &ed25519_dalek::VerifyingKey,
 ) -> Result<(), ClientError> {
     let pk = BASE64_URL_SAFE_NO_PAD.encode(pk);
     let client = reqwest::Client::new();

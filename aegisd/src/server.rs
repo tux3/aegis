@@ -61,13 +61,13 @@ pub async fn run_server(db: PgPool, config: &Config) -> Result<()> {
 pub struct TestServer {
     pub app: Router,
     pub config: Config,
-    pub root_key: ed25519_dalek::Keypair,
+    pub root_key: ed25519_dalek::SigningKey,
 }
 
 #[cfg(test)]
 pub async fn make_test_server(db: PgPool) -> Result<TestServer> {
-    let root_key = ed25519_dalek::Keypair::generate(&mut rand::thread_rng());
-    let config = Config::test_config(root_key.public);
+    let root_key = ed25519_dalek::SigningKey::generate(&mut rand::thread_rng());
+    let config = Config::test_config(root_key.verifying_key());
     let app = make_router(db, &config).await?;
     Ok(TestServer {
         app,

@@ -9,7 +9,7 @@ use axum::extract::{ConnectInfo, Path, State, WebSocketUpgrade};
 use axum::response::{IntoResponse, Response};
 use base64::prelude::*;
 use chrono::Utc;
-use ed25519_dalek::PublicKey;
+use ed25519_dalek::VerifyingKey;
 use futures::StreamExt;
 use http::Request;
 use hyper::{Body, StatusCode};
@@ -28,7 +28,10 @@ pub async fn websocket_upgrade(
     ws_upgrade: WebSocketUpgrade,
 ) -> Result<Response> {
     let device_pk = BASE64_URL_SAFE_NO_PAD.decode(device_pk).ok();
-    let device_pk = match device_pk.and_then(|pk| PublicKey::from_bytes(&pk).ok()) {
+    let device_pk = match device_pk
+        .and_then(|pk| pk.try_into().ok())
+        .and_then(|pk| VerifyingKey::from_bytes(&pk).ok())
+    {
         Some(pk) => pk,
         None => bail!(StatusCode::BAD_REQUEST, "Invalid device_id"),
     };
@@ -55,8 +58,11 @@ pub async fn register(
     if request.into_body().next().await.is_some() {
         bail!(StatusCode::BAD_REQUEST, "Unexpected body");
     }
-    let device_pk = BASE64_URL_SAFE_NO_PAD.decode(device_pk).ok();
-    let device_pk = match device_pk.and_then(|pk| PublicKey::from_bytes(&pk).ok()) {
+    let device_pk = BASE64_URL_SAFE_NO_PAD
+        .decode(device_pk)
+        .ok()
+        .and_then(|pk| pk.try_into().ok());
+    let device_pk = match device_pk.and_then(|pk| VerifyingKey::from_bytes(&pk).ok()) {
         Some(pk) => pk,
         None => bail!(StatusCode::BAD_REQUEST, "Invalid device_id"),
     };
@@ -112,7 +118,7 @@ mod test {
     #[sqlx::test]
     async fn register_unexpected_body(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db).await?;
-        let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(random_sign_keypair().public);
+        let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(random_sign_keypair().verifying_key());
         let req = Request::post(format!("/register/{dev_pk}/name/test"))
             .body(b"body"[..].into())
             .unwrap();
@@ -124,7 +130,7 @@ mod test {
     #[sqlx::test]
     async fn register(db: PgPool) -> Result<()> {
         let mut server = make_test_server(db.clone()).await?;
-        let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(random_sign_keypair().public);
+        let dev_pk = BASE64_URL_SAFE_NO_PAD.encode(random_sign_keypair().verifying_key());
         let req = Request::post(format!("/register/{dev_pk}/name/test"))
             .body(Body::empty())
             .unwrap();
